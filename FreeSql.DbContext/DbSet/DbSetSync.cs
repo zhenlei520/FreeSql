@@ -54,7 +54,7 @@ namespace FreeSql
                             _db._entityChangeReport.Add(new DbContext.EntityChangeReport.ChangeInfo { Object = data, Type = DbContext.EntityChangeType.Insert });
                             Attach(data);
                             if (_db.Options.EnableAddOrUpdateNavigateList)
-                                AddOrUpdateNavigateList(data, true);
+                                AddOrUpdateNavigateList(data, true, null);
                         }
                         else
                         {
@@ -65,7 +65,7 @@ namespace FreeSql
                             _db.OrmOriginal.MapEntityValue(_entityType, newval, data);
                             Attach(newval);
                             if (_db.Options.EnableAddOrUpdateNavigateList)
-                                AddOrUpdateNavigateList(data, true);
+                                AddOrUpdateNavigateList(data, true, null);
                         }
                         return;
                     default:
@@ -78,7 +78,7 @@ namespace FreeSql
                             _db._entityChangeReport.Add(new DbContext.EntityChangeReport.ChangeInfo { Object = data, Type = DbContext.EntityChangeType.Insert });
                             Attach(data);
                             if (_db.Options.EnableAddOrUpdateNavigateList)
-                                AddOrUpdateNavigateList(data, true);
+                                AddOrUpdateNavigateList(data, true, null);
                         }
                         return;
                 }
@@ -86,7 +86,7 @@ namespace FreeSql
             EnqueueToDbContext(DbContext.EntityChangeType.Insert, CreateEntityState(data));
             Attach(data);
             if (_db.Options.EnableAddOrUpdateNavigateList)
-                AddOrUpdateNavigateList(data, true);
+                AddOrUpdateNavigateList(data, true, null);
         }
         /// <summary>
         /// 添加
@@ -124,7 +124,7 @@ namespace FreeSql
                         AttachRange(rets);
                         if (_db.Options.EnableAddOrUpdateNavigateList)
                             foreach (var item in data)
-                                AddOrUpdateNavigateList(item, true);
+                                AddOrUpdateNavigateList(item, true, null);
                         return;
                     default:
                         foreach (var s in data)
@@ -140,7 +140,7 @@ namespace FreeSql
                 AttachRange(data);
                 if (_db.Options.EnableAddOrUpdateNavigateList)
                     foreach (var item in data)
-                        AddOrUpdateNavigateList(item, true);
+                        AddOrUpdateNavigateList(item, true, null);
             }
         }
 
@@ -210,14 +210,14 @@ namespace FreeSql
                 _db.Options.EnableAddOrUpdateNavigateList = oldEnable;
             }
         }
-        void AddOrUpdateNavigateList(TEntity item, bool isAdd, string propertyName = null)
+        void AddOrUpdateNavigateList(TEntity item, bool isAdd, string propertyName)
         {
             Action<PropertyInfo> action = prop =>
             {
                 if (_table.ColumnsByCsIgnore.ContainsKey(prop.Name)) return;
                 if (_table.ColumnsByCs.ContainsKey(prop.Name)) return;
 
-                var tref = _table.GetTableRef(prop.Name, true);
+                var tref = _table.GetTableRef(prop.Name, false); //防止非正常的导航属性报错
                 if (tref == null) return;
                 switch (tref.RefType)
                 {
@@ -255,8 +255,9 @@ namespace FreeSql
 
                         if (curList.Any() == false) //全部删除
                         {
-                            var delall = _db.OrmOriginal.Delete<object>().AsType(tref.RefMiddleEntityType)
-                            .WithTransaction(_uow?.GetOrBeginTransaction());
+                            var delall = _db.OrmOriginal.Delete<object>()
+                                .AsType(tref.RefMiddleEntityType)
+                                .WithTransaction(_uow?.GetOrBeginTransaction());
                             foreach (var midWhere in midWheres) delall.Where(midWhere);
                             var sql = delall.ToSql();
                             delall.ExecuteAffrows();
@@ -472,7 +473,7 @@ namespace FreeSql
             }
             if (_db.Options.EnableAddOrUpdateNavigateList)
                 foreach (var item in data)
-                    AddOrUpdateNavigateList(item, false);
+                    AddOrUpdateNavigateList(item, false, null);
         }
         #endregion
 

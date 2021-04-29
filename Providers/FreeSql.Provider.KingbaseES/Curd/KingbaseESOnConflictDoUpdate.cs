@@ -6,6 +6,7 @@ using System.Data;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace FreeSql.KingbaseES
@@ -124,7 +125,7 @@ namespace FreeSql.KingbaseES
 
                         if (colidx > 0) sb.Append(", \r\n");
 
-                        if (col.Attribute.IsVersion == true)
+                        if (col.Attribute.IsVersion == true && col.Attribute.MapType != typeof(byte[]))
                         {
                             var field = _insert.InternalCommonUtils.QuoteSqlName(col.Attribute.Name);
                             sb.Append(field).Append(" = ").Append(_insert.InternalCommonUtils.QuoteSqlName(_insert.InternalTable.DbName)).Append(".").Append(field).Append(" + 1");
@@ -177,7 +178,7 @@ namespace FreeSql.KingbaseES
 
 #if net40
 #else
-        async public Task<long> ExecuteAffrowsAsync()
+        async public Task<long> ExecuteAffrowsAsync(CancellationToken cancellationToken = default)
         {
             var sql = this.ToSql();
             if (string.IsNullOrEmpty(sql)) return 0;
@@ -188,7 +189,7 @@ namespace FreeSql.KingbaseES
             Exception exception = null;
             try
             {
-                ret = await _insert.InternalOrm.Ado.ExecuteNonQueryAsync(_insert.InternalConnection, _insert.InternalTransaction, CommandType.Text, sql, _insert._commandTimeout, _insert.InternalParams);
+                ret = await _insert.InternalOrm.Ado.ExecuteNonQueryAsync(_insert.InternalConnection, _insert.InternalTransaction, CommandType.Text, sql, _insert._commandTimeout, _insert.InternalParams, cancellationToken);
             }
             catch (Exception ex)
             {

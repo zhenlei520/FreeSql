@@ -6,6 +6,7 @@ using FreeSql.Internal.Model;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
+using System.Collections.Generic;
 using System.Data.Odbc;
 using System.Data.SqlClient;
 using System.Data.SQLite;
@@ -87,6 +88,17 @@ namespace base_entity
             }
         }
 
+        class B
+        {
+            public long Id { get; set; }
+        }
+
+        class A
+        {
+            public long BId { get; set; }
+            public B B { get; set; }
+        }
+
         static void Main(string[] args)
         {
             #region 初始化 IFreeSql
@@ -121,9 +133,67 @@ namespace base_entity
 
                 .UseMonitorCommand(umcmd => Console.WriteLine(umcmd.CommandText))
                 .UseLazyLoading(true)
+                .UseGenerateCommandParameterWithLambda(true)
                 .Build();
             BaseEntity.Initialization(fsql, () => _asyncUow.Value);
             #endregion
+
+            for (var a = 0; a < 1000; a++)
+            {
+                fsql.Transaction(() =>
+                {
+                    var tran = fsql.Ado.TransactionCurrentThread;
+                    tran.Rollback();
+                });
+            }
+
+            fsql.UseJsonMap();
+            var bid1 = 10;
+            var list1 = fsql.Select<A>()
+                .Where(a => a.BId == bid1);
+            var aid1 = 11;
+            var select2 = fsql.Select<B>();
+            (select2 as Select0Provider)._params = (list1 as Select0Provider)._params;
+            var list2 = select2
+                .Where(a => list1.ToList(B => B.BId).Contains(a.Id))
+                .Where(a => a.Id == aid1)
+                .ToSql();
+
+            //fsql.Aop.CommandBefore += (s, e) =>
+            //{
+            //    e.States["xxx"] = 111;
+            //};
+            //fsql.Aop.CommandAfter += (s, e) =>
+            //{
+            //    var xxx = e.States["xxx"];
+            //};
+
+            //fsql.Aop.TraceBefore += (s, e) =>
+            //{
+            //    e.States["xxx"] = 222;
+            //};
+            //fsql.Aop.TraceAfter += (s, e) =>
+            //{
+            //    var xxx = e.States["xxx"];
+            //};
+
+            //fsql.Aop.SyncStructureBefore += (s, e) =>
+            //{
+            //    e.States["xxx"] = 333;
+            //};
+            //fsql.Aop.SyncStructureAfter += (s, e) =>
+            //{
+            //    var xxx = e.States["xxx"];
+            //};
+
+            //fsql.Aop.CurdBefore += (s, e) =>
+            //{
+            //    e.States["xxx"] = 444;
+            //};
+            //fsql.Aop.CurdAfter += (s, e) =>
+            //{
+            //    var xxx = e.States["xxx"];
+            //};
 
             fsql.Insert(new tttorder("xx1", 1, 10)).ExecuteAffrows();
             fsql.Insert(new tttorder("xx2", 2, 20)).ExecuteAffrows();
@@ -174,7 +244,7 @@ namespace base_entity
         {
           ""Field"" : ""title"",
           ""Operator"" : ""contains"",
-          ""Value"" : ""product-1111"",
+          ""Value"" : """",
         },
         {
           ""Field"" : ""title"",
@@ -207,6 +277,11 @@ namespace base_entity
       ""Field"" : ""testint"",
       ""Operator"" : ""Range"",
       ""Value"" : [""101"",""202""]
+    },
+    {
+      ""Field"" : ""testint"",
+      ""Operator"" : ""contains"",
+      ""Value"" : ""123""
     },
   ]
 }

@@ -12,6 +12,31 @@ namespace FreeSql.Tests.Sqlite
     public class SqliteCodeFirstTest
     {
         [Fact]
+        public void InsertUpdateParameter()
+        {
+            var fsql = g.sqlite;
+            fsql.CodeFirst.SyncStructure<ts_iupstr_bak>();
+            var item = new ts_iupstr { id = Guid.NewGuid(), title = string.Join(",", Enumerable.Range(0, 2000).Select(a => "我是中国人")) };
+            Assert.Equal(1, fsql.Insert(item).ExecuteAffrows());
+            var find = fsql.Select<ts_iupstr>().Where(a => a.id == item.id).First();
+            Assert.NotNull(find);
+            Assert.Equal(find.id, item.id);
+            Assert.Equal(find.title, item.title);
+        }
+        [Table(Name = "ts_iupstr_bak", DisableSyncStructure = true)]
+        class ts_iupstr
+        {
+            public Guid id { get; set; }
+            public string title { get; set; }
+        }
+        class ts_iupstr_bak
+        {
+            public Guid id { get; set; }
+            [Column(StringLength = -1)]
+            public string title { get; set; }
+        }
+
+        [Fact]
         public void Blob()
         {
             var str1 = string.Join(",", Enumerable.Range(0, 10000).Select(a => "我是中国人"));
@@ -312,6 +337,17 @@ namespace FreeSql.Tests.Sqlite
 
             var items = select.ToList();
             var itemstb = select.ToDataTable();
+        }
+
+        [Fact]
+        public void UpdateSetFlag()
+        {
+            var sql1 = g.sqlite.Update<TableAllType>()
+                .Set(a => a.Enum2 | TableAllTypeEnumType2.f2)
+                .Where(a => a.Id == 10)
+                .ToSql();
+            Assert.Equal(@"UPDATE ""tb_alltype"" SET ""Enum2"" = (""Enum2"" | 1), ""DateTime"" = datetime(current_timestamp,'localtime'), ""DateTimeOffSet"" = datetime(current_timestamp,'localtime'), ""DateTimeNullable"" = datetime(current_timestamp,'localtime'), ""DateTimeOffSetNullable"" = datetime(current_timestamp,'localtime') 
+WHERE (""Id"" = 10)", sql1);
         }
 
         [Table(Name = "tb_alltype")]

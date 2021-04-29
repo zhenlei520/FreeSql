@@ -23,7 +23,7 @@ namespace FreeSql.Dameng
             {
                 case DmDbType.Bit:
                     if (value == null) value = null;
-                    else value = (bool)value == true ? 1 : 0;
+                    else value = (bool) value == true ? 1 : 0;
                     dbtype = DmDbType.Int32;
                     break;
                
@@ -41,22 +41,27 @@ namespace FreeSql.Dameng
         public override DbParameter[] GetDbParamtersByObject(string sql, object obj) =>
             Utils.GetDbParamtersByObject<DmParameter>(sql, obj, null, (name, type, value) =>
             {
-                var dbtype = (DmDbType)_orm.CodeFirst.GetDbInfo(type)?.type;
-                switch (dbtype)
+                var typeint = _orm.CodeFirst.GetDbInfo(type)?.type;
+                var dbtype = typeint != null ? (DmDbType?)typeint : null;
+                if (dbtype != null)
                 {
-                    case DmDbType.Bit:
-                        if (value == null) value = null;
-                        else value = (bool)value == true ? 1 : 0;
-                        dbtype = DmDbType.Int32;
-                        break;
+                    switch (dbtype)
+                    {
+                        case DmDbType.Bit:
+                            if (value == null) value = null;
+                            else value = (bool)value == true ? 1 : 0;
+                            dbtype = DmDbType.Int32;
+                            break;
 
-                    case DmDbType.Char:
-                    case DmDbType.VarChar:
-                    case DmDbType.Text:
-                        value = string.Concat(value);
-                        break;
+                        case DmDbType.Char:
+                        case DmDbType.VarChar:
+                        case DmDbType.Text:
+                            value = string.Concat(value);
+                            break;
+                    }
                 }
-                var ret = new DmParameter { ParameterName = $":{name}", DmSqlType = dbtype, Value = value };
+                var ret = new DmParameter { ParameterName = $":{name}", Value = value };
+                if (dbtype != null) ret.DmSqlType = dbtype.Value;
                 return ret;
             });
 
@@ -90,10 +95,10 @@ namespace FreeSql.Dameng
         public override string Now => "systimestamp";
         public override string NowUtc => "getutcdate";
 
-        public override string QuoteWriteParamter(Type type, string paramterName) => paramterName;
-        public override string QuoteReadColumn(Type type, Type mapType, string columnName) => columnName;
+        public override string QuoteWriteParamterAdapter(Type type, string paramterName) => paramterName;
+        protected override string QuoteReadColumnAdapter(Type type, Type mapType, string columnName) => columnName;
 
-        public override string GetNoneParamaterSqlValue(List<DbParameter> specialParams, string specialParamFlag, Type type, object value)
+        public override string GetNoneParamaterSqlValue(List<DbParameter> specialParams, string specialParamFlag, ColumnInfo col, Type type, object value)
         {
             if (value == null) return "NULL";
             if (type.IsNumberType()) return string.Format(CultureInfo.InvariantCulture, "{0}", value);

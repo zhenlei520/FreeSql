@@ -1,7 +1,9 @@
-﻿using System;
+﻿using FreeSql.Internal.Model;
+using System;
 using System.Collections.Generic;
 using System.Linq.Expressions;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace FreeSql
@@ -11,9 +13,9 @@ namespace FreeSql
 
 #if net40
 #else
-        Task<long> CountAsync();
-        Task<List<TReturn>> ToListAsync<TReturn>(Expression<Func<ISelectGroupingAggregate<TKey, TValue>, TReturn>> select);
-        Task<Dictionary<TKey, TElement>> ToDictionaryAsync<TElement>(Expression<Func<ISelectGroupingAggregate<TKey, TValue>, TElement>> elementSelector);
+        Task<long> CountAsync(CancellationToken cancellationToken = default);
+        Task<List<TReturn>> ToListAsync<TReturn>(Expression<Func<ISelectGroupingAggregate<TKey, TValue>, TReturn>> select, CancellationToken cancellationToken = default);
+        Task<Dictionary<TKey, TElement>> ToDictionaryAsync<TElement>(Expression<Func<ISelectGroupingAggregate<TKey, TValue>, TElement>> elementSelector, CancellationToken cancellationToken = default);
 #endif
 
         /// <summary>
@@ -56,6 +58,7 @@ namespace FreeSql
         /// </summary>
         /// <typeparam name="TReturn">返回类型</typeparam>
         /// <param name="select">选择列</param>
+        /// <param name="fieldAlias"></param>
         /// <returns></returns>
         string ToSql<TReturn>(Expression<Func<ISelectGroupingAggregate<TKey, TValue>, TReturn>> select, FieldAliasOptions fieldAlias = FieldAliasOptions.AsIndex);
         /// <summary>
@@ -98,6 +101,13 @@ namespace FreeSql
         /// <param name="pageSize">每页多少</param>
         /// <returns></returns>
         ISelectGrouping<TKey, TValue> Page(int pageNumber, int pageSize);
+
+        /// <summary>
+        /// 分页
+        /// </summary>
+        /// <param name="pagingInfo">分页信息</param>
+        /// <returns></returns>
+        ISelectGrouping<TKey, TValue> Page(BasePagingInfo pagingInfo);
 
         /// <summary>
         /// 查询的记录数量

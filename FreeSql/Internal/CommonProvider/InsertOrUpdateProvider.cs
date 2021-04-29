@@ -8,6 +8,7 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace FreeSql.Internal.CommonProvider
@@ -166,7 +167,7 @@ namespace FreeSql.Internal.CommonProvider
                     else
                     {
                         object val = col.GetDbValue(d);
-                        sb.Append(_commonUtils.GetNoneParamaterSqlValue(dbParams, "cu", col.Attribute.MapType, val));
+                        sb.Append(_commonUtils.RewriteColumn(col, _commonUtils.GetNoneParamaterSqlValue(dbParams, "cu", col, col.Attribute.MapType, val)));
                     }
                     if (didx == 0) sb.Append(" as ").Append(col.Attribute.Name);
                     ++colidx2;
@@ -253,7 +254,7 @@ namespace FreeSql.Internal.CommonProvider
                         {
                             _transaction.Rollback();
                             _orm.Aop.TraceAfterHandler?.Invoke(this, new Aop.TraceAfterEventArgs(transBefore, "回滚", ex));
-                            throw ex;
+                            throw;
                         }
                         _transaction = null;
                     }
@@ -281,7 +282,7 @@ namespace FreeSql.Internal.CommonProvider
             catch (Exception ex)
             {
                 exception = ex;
-                throw ex;
+                throw;
             }
             finally
             {
@@ -292,7 +293,7 @@ namespace FreeSql.Internal.CommonProvider
         }
 #if net40
 #else
-        async public Task<int> RawExecuteAffrowsAsync()
+        async public Task<int> RawExecuteAffrowsAsync(CancellationToken cancellationToken = default)
         {
             var sql = this.ToSql();
             if (string.IsNullOrEmpty(sql)) return 0;
@@ -302,12 +303,12 @@ namespace FreeSql.Internal.CommonProvider
             Exception exception = null;
             try
             {
-                affrows = await _orm.Ado.ExecuteNonQueryAsync(_connection, _transaction, CommandType.Text, sql, _commandTimeout, _params);
+                affrows = await _orm.Ado.ExecuteNonQueryAsync(_connection, _transaction, CommandType.Text, sql, _commandTimeout, _params, cancellationToken);
             }
             catch (Exception ex)
             {
                 exception = ex;
-                throw ex;
+                throw;
             }
             finally
             {
@@ -316,7 +317,7 @@ namespace FreeSql.Internal.CommonProvider
             }
             return affrows;
         }
-        async public Task<int> ExecuteAffrowsAsync()
+        async public Task<int> ExecuteAffrowsAsync(CancellationToken cancellationToken = default)
         {
             var affrows = 0;
             var ss = SplitSourceByIdentityValueIsNull(_source);
@@ -332,10 +333,10 @@ namespace FreeSql.Internal.CommonProvider
                 {
                     _source = ss.Item1;
                     _SplitSourceByIdentityValueIsNullFlag = 1;
-                    affrows += await this.RawExecuteAffrowsAsync();
+                    affrows += await this.RawExecuteAffrowsAsync(cancellationToken);
                     _source = ss.Item2;
                     _SplitSourceByIdentityValueIsNullFlag = 2;
-                    affrows += await this.RawExecuteAffrowsAsync();
+                    affrows += await this.RawExecuteAffrowsAsync(cancellationToken);
                 }
                 else
                 {
@@ -348,10 +349,10 @@ namespace FreeSql.Internal.CommonProvider
                         {
                             _source = ss.Item1;
                             _SplitSourceByIdentityValueIsNullFlag = 1;
-                            affrows += await this.RawExecuteAffrowsAsync();
+                            affrows += await this.RawExecuteAffrowsAsync(cancellationToken);
                             _source = ss.Item2;
                             _SplitSourceByIdentityValueIsNullFlag = 2;
-                            affrows += await this.RawExecuteAffrowsAsync();
+                            affrows += await this.RawExecuteAffrowsAsync(cancellationToken);
                             _transaction.Commit();
                             _orm.Aop.TraceAfterHandler?.Invoke(this, new Aop.TraceAfterEventArgs(transBefore, "提交", null));
                         }
@@ -359,7 +360,7 @@ namespace FreeSql.Internal.CommonProvider
                         {
                             _transaction.Rollback();
                             _orm.Aop.TraceAfterHandler?.Invoke(this, new Aop.TraceAfterEventArgs(transBefore, "回滚", ex));
-                            throw ex;
+                            throw;
                         }
                         _transaction = null;
                     }

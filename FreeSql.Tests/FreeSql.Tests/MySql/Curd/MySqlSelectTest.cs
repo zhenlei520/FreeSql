@@ -956,6 +956,17 @@ LEFT JOIN `TestTypeParentInfo` a__Type__Parent ON a__Type__Parent.`Id` = a__Type
             var sql = select.OrderBy(a => new Random().NextDouble()).ToList();
         }
         [Fact]
+        public void OrderByRandom()
+        {
+            var t1 = select.OrderByRandom().Limit(10).ToSql("1");
+            Assert.Equal(@"SELECT 1 
+FROM `tb_topic` a 
+ORDER BY rand() 
+limit 0,10", t1);
+            var t2 = select.OrderByRandom().Limit(10).ToList();
+        }
+
+        [Fact]
         public void Skip_Offset()
         {
             var sql = select.Offset(10).Limit(10).ToList();
@@ -1206,12 +1217,12 @@ limit 0,20", select
                     WF_ProcessInstance = p
                 });
 
-            Assert.Equal(@"SELECT max(a.`Id`) TaskId, max(a.`Type`) TaskType, a.`ProcessId`, a.`NodeId`, a.`NodeName` 
+            Assert.Equal(@"SELECT max(a.`Id`) `TaskId`, max(a.`Type`) `TaskType`, a.`ProcessId`, a.`NodeId`, a.`NodeName` 
 FROM `WF_Task` a 
 WHERE (a.`IsFinished` = 1 AND (a.`AuditorId` = '1' OR a.`AuditorId` = '1cb71584-a6dd-4b26-8c88-ed9fb8cf87a3')) 
 GROUP BY a.`ProcessId`, a.`NodeId`, a.`NodeName`", sqltmp12);
             Assert.Equal(@"SELECT a.`TaskId` as1, a.`TaskType` as2, a.`ProcessId` as3, a.`NodeId` as4, a.`NodeName` as5, b.`Id` as6, b.`TaskType` as7, b.`ProcessId` as8, b.`NodeId` as9, b.`CreateTime` as10, b.`IsFinished` as11, b.`EnabledMark` as12 
-FROM ( SELECT max(a.`Id`) TaskId, max(a.`Type`) TaskType, a.`ProcessId`, a.`NodeId`, a.`NodeName` 
+FROM ( SELECT max(a.`Id`) `TaskId`, max(a.`Type`) `TaskType`, a.`ProcessId`, a.`NodeId`, a.`NodeName` 
     FROM `WF_Task` a 
     WHERE (a.`IsFinished` = 1 AND (a.`AuditorId` = '1' OR a.`AuditorId` = '1cb71584-a6dd-4b26-8c88-ed9fb8cf87a3')) 
     GROUP BY a.`ProcessId`, a.`NodeId`, a.`NodeName` ) a 
@@ -1989,43 +2000,49 @@ WHERE ((b.`IsFinished` OR a.`TaskType` = 3) AND b.`EnabledMark` = 1)", groupsql1
             Assert.Equal("110100", t3[0].Childs[0].Childs[0].Code);
             Assert.Equal("110101", t3[0].Childs[0].Childs[1].Code);
 
-            //t3 = fsql.Select<VM_District_Child>().Where(a => a.Name == "中国").AsTreeCte().OrderBy(a => a.Code).ToTreeList();
-            //Assert.Single(t3);
-            //Assert.Equal("100000", t3[0].Code);
-            //Assert.Single(t3[0].Childs);
-            //Assert.Equal("110000", t3[0].Childs[0].Code);
-            //Assert.Equal(2, t3[0].Childs[0].Childs.Count);
-            //Assert.Equal("110100", t3[0].Childs[0].Childs[0].Code);
-            //Assert.Equal("110101", t3[0].Childs[0].Childs[1].Code);
+            t3 = fsql.Select<VM_District_Child>().Where(a => a.Name == "中国").AsTreeCte().OrderBy(a => a.Code).ToTreeList();
+            Assert.Single(t3);
+            Assert.Equal("100000", t3[0].Code);
+            Assert.Single(t3[0].Childs);
+            Assert.Equal("110000", t3[0].Childs[0].Code);
+            Assert.Equal(2, t3[0].Childs[0].Childs.Count);
+            Assert.Equal("110100", t3[0].Childs[0].Childs[0].Code);
+            Assert.Equal("110101", t3[0].Childs[0].Childs[1].Code);
 
-            //t3 = fsql.Select<VM_District_Child>().Where(a => a.Name == "中国").AsTreeCte().OrderBy(a => a.Code).ToList();
-            //Assert.Equal(4, t3.Count);
-            //Assert.Equal("100000", t3[0].Code);
-            //Assert.Equal("110000", t3[1].Code);
-            //Assert.Equal("110100", t3[2].Code);
-            //Assert.Equal("110101", t3[3].Code);
+            t3 = fsql.Select<VM_District_Child>().Where(a => a.Name == "中国").AsTreeCte().OrderBy(a => a.Code).ToList();
+            Assert.Equal(4, t3.Count);
+            Assert.Equal("100000", t3[0].Code);
+            Assert.Equal("110000", t3[1].Code);
+            Assert.Equal("110100", t3[2].Code);
+            Assert.Equal("110101", t3[3].Code);
 
-            //t3 = fsql.Select<VM_District_Child>().Where(a => a.Name == "北京").AsTreeCte().OrderBy(a => a.Code).ToList();
-            //Assert.Equal(3, t3.Count);
-            //Assert.Equal("110000", t3[0].Code);
-            //Assert.Equal("110100", t3[1].Code);
-            //Assert.Equal("110101", t3[2].Code);
+            t3 = fsql.Select<VM_District_Child>().Where(a => a.Name == "北京").AsTreeCte().OrderBy(a => a.Code).ToList();
+            Assert.Equal(3, t3.Count);
+            Assert.Equal("110000", t3[0].Code);
+            Assert.Equal("110100", t3[1].Code);
+            Assert.Equal("110101", t3[2].Code);
 
-            //var select = fsql.Select<VM_District_Child>()
-            //    .Where(a => a.Name == "中国")
-            //    .AsTreeCte()
-            //    //.OrderBy("a.cte_level desc") //递归层级
-            //    ;
-            //// var list = select.ToList(); //自己调试看查到的数据
-            //select.ToUpdate().Set(a => a.testint, 855).ExecuteAffrows();
-            //Assert.Equal(855, fsql.Select<VM_District_Child>()
-            //    .Where(a => a.Name == "中国")
-            //    .AsTreeCte().Distinct().First(a => a.testint));
+            var t4 = fsql.Select<VM_District_Child>().Where(a => a.Name == "东城区").AsTreeCte(up: true).ToList();
+            Assert.Equal(3, t4.Count);
+            Assert.Equal("110101", t4[0].Code);
+            Assert.Equal("110000", t4[1].Code);
+            Assert.Equal("100000", t4[2].Code);
 
-            //Assert.Equal(4, select.ToDelete().ExecuteAffrows());
-            //Assert.False(fsql.Select<VM_District_Child>()
-            //    .Where(a => a.Name == "中国")
-            //    .AsTreeCte().Any());
+            var select = fsql.Select<VM_District_Child>()
+                .Where(a => a.Name == "中国")
+                .AsTreeCte()
+                //.OrderBy("a.cte_level desc") //递归层级
+                ;
+            // var list = select.ToList(); //自己调试看查到的数据
+            select.ToUpdate().Set(a => a.testint, 855).ExecuteAffrows();
+            Assert.Equal(855, fsql.Select<VM_District_Child>()
+                .Where(a => a.Name == "中国")
+                .AsTreeCte().Distinct().First(a => a.testint));
+
+            Assert.Equal(4, select.ToDelete().ExecuteAffrows());
+            Assert.False(fsql.Select<VM_District_Child>()
+                .Where(a => a.Name == "中国")
+                .AsTreeCte().Any());
         }
 
         [Table(Name = "D_District")]

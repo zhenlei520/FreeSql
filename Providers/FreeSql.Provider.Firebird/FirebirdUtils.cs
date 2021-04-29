@@ -29,7 +29,7 @@ namespace FreeSql.Firebird
                         break;
                     default:
                         dbtype = dbtype2;
-                        if (col.DbSize != 0) ret.Size = col.DbSize;
+                        //if (col.DbSize != 0) ret.Size = col.DbSize;
                         if (col.DbPrecision != 0) ret.Precision = col.DbPrecision;
                         if (col.DbScale != 0) ret.Scale = col.DbScale;
                         break;
@@ -43,9 +43,11 @@ namespace FreeSql.Firebird
         public override DbParameter[] GetDbParamtersByObject(string sql, object obj) =>
             Utils.GetDbParamtersByObject<DbParameter>(sql, obj, "@", (name, type, value) =>
             {
-                var ret = new FbParameter { ParameterName = $"@{name}", Value = value };
+                var ret = new FbParameter { ParameterName = $"@{name}" };
                 var tp = _orm.CodeFirst.GetDbInfo(type)?.type;
                 if (tp != null) ret.FbDbType = (FbDbType)tp.Value;
+                else ret.FbDbType = FbDbType.Text;
+                ret.Value = value;
                 return ret;
             });
 
@@ -79,10 +81,10 @@ namespace FreeSql.Firebird
         public override string Now => "current_timestamp";
         public override string NowUtc => "current_timestamp";
 
-        public override string QuoteWriteParamter(Type type, string paramterName) => paramterName;
-        public override string QuoteReadColumn(Type type, Type mapType, string columnName) => columnName;
+        public override string QuoteWriteParamterAdapter(Type type, string paramterName) => paramterName;
+        protected override string QuoteReadColumnAdapter(Type type, Type mapType, string columnName) => columnName;
 
-        public override string GetNoneParamaterSqlValue(List<DbParameter> specialParams, string specialParamFlag, Type type, object value)
+        public override string GetNoneParamaterSqlValue(List<DbParameter> specialParams, string specialParamFlag, ColumnInfo col, Type type, object value)
         {
             if (value == null) return "NULL";
             if (type.IsNumberType()) return string.Format(CultureInfo.InvariantCulture, "{0}", value);

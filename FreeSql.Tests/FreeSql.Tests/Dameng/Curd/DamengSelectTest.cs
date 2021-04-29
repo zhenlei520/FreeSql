@@ -213,6 +213,10 @@ namespace FreeSql.Tests.Dameng
             var ddd = g.dameng.Select<District>().LeftJoin(d => d.ParentCode == d.Parent.Code).ToTreeList();
             Assert.Single(ddd);
             Assert.Equal(2, ddd[0].Childs.Count);
+
+            ddd = g.dameng.Select<District>().LeftJoin(d => d.ParentCode == d.Parent.Code).ToTreeListAsync().Result;
+            Assert.Single(ddd);
+            Assert.Equal(2, ddd[0].Childs.Count);
         }
         public class District
         {
@@ -332,6 +336,7 @@ namespace FreeSql.Tests.Dameng
             var sql = query.ToSql().Replace("\r\n", "");
             Assert.Equal("SELECT a.\"ID\", a.\"CLICKS\", a.\"TYPEGUID\", a__Type.\"GUID\", a__Type.\"PARENTID\", a__Type.\"NAME\", a.\"TITLE\", a.\"CREATETIME\" FROM \"TB_TOPIC22\" a LEFT JOIN \"TESTTYPEINFO\" a__Type ON a__Type.\"GUID\" = a.\"TYPEGUID\"", sql);
             query.ToList();
+            query.ToList(true);
 
             query = select.LeftJoin(a => a.Type.Guid == a.TypeGuid && a.Type.Name == "xxx");
             sql = query.ToSql().Replace("\r\n", "");
@@ -471,6 +476,7 @@ namespace FreeSql.Tests.Dameng
             var sql = query.ToSql().Replace("\r\n", "");
             Assert.Equal("SELECT a.\"ID\", a.\"CLICKS\", a.\"TYPEGUID\", a__Type.\"GUID\", a__Type.\"PARENTID\", a__Type.\"NAME\", a.\"TITLE\", a.\"CREATETIME\" FROM \"TB_TOPIC22\" a RIGHT JOIN \"TESTTYPEINFO\" a__Type ON a__Type.\"GUID\" = a.\"TYPEGUID\"", sql);
             query.ToList();
+            query.ToList(true);
 
             query = select.RightJoin(a => a.Type.Guid == a.TypeGuid && a.Type.Name == "xxx");
             sql = query.ToSql().Replace("\r\n", "");
@@ -742,6 +748,10 @@ namespace FreeSql.Tests.Dameng
 
             var fkfjfj = select.GroupBy(a => a.Title)
                 .ToList(a => a.Sum(a.Value.TypeGuid));
+            var fkfjfj2 = select.GroupBy(a => a.Title)
+                .Page(2, 10)
+                .OrderBy(a => a.Key)
+                .ToList(a => a.Sum(a.Value.TypeGuid));
 
             var aggsql1 = select
                 .GroupBy(a => a.Title)
@@ -813,8 +823,12 @@ namespace FreeSql.Tests.Dameng
         {
             var sql = select.ToAggregate(a => new { sum = a.Sum(a.Key.Id + 11.11), avg = a.Avg(a.Key.Id), count = a.Count(), max = a.Max(a.Key.Id), min = a.Min(a.Key.Id) });
 
-            select
+            var sel1 = select
                 .Aggregate(a => new { sum = a.Sum(a.Key.Id), count = a.Count() }, out var output)
+                .ToList();
+
+            var sel2 = select
+                .Aggregate(a => Convert.ToInt32("count(distinct title)"), out var output2)
                 .ToList();
         }
         [Fact]
@@ -822,6 +836,16 @@ namespace FreeSql.Tests.Dameng
         {
             var sql = select.Offset(10).OrderBy(a => new Random().NextDouble()).ToList();
         }
+        [Fact]
+        public void OrderByRandom()
+        {
+            var t1 = select.OrderByRandom().Limit(10).ToSql("1");
+            Assert.Equal(@"SELECT  t.* FROM (SELECT 1 
+FROM ""TB_TOPIC22"" a 
+ORDER BY dbms_random.value) t WHERE ROWNUM < 11", t1);
+            var t2 = select.OrderByRandom().Limit(10).ToList();
+        }
+
         [Fact]
         public void Skip_Offset()
         {

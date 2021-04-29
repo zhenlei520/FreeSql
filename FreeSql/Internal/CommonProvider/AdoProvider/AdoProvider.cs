@@ -1,21 +1,23 @@
-﻿using FreeSql.Internal.ObjectPool;
+﻿using FreeSql.Internal.Model;
+using FreeSql.Internal.ObjectPool;
 using System;
-using System.Collections.Generic;
+using System.Collections;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Data;
 using System.Data.Common;
 using System.Diagnostics;
 using System.Linq;
-using System.Text;
 using System.Reflection;
-using FreeSql.Internal.Model;
+using System.Text;
+using System.Text.RegularExpressions;
 
 namespace FreeSql.Internal.CommonProvider
 {
     public abstract partial class AdoProvider : IAdo, IDisposable
     {
 
-        protected abstract void ReturnConnection(IObjectPool<DbConnection> pool, Object<DbConnection> conn, Exception ex);
+        public abstract void ReturnConnection(IObjectPool<DbConnection> pool, Object<DbConnection> conn, Exception ex);
         public abstract DbCommand CreateCommand();
         public abstract DbParameter[] GetDbParamtersByObject(string sql, object obj);
         public DbParameter[] GetDbParamtersByObject(object obj) => GetDbParamtersByObject("*", obj);
@@ -25,14 +27,15 @@ namespace FreeSql.Internal.CommonProvider
         public IObjectPool<DbConnection> MasterPool { get; protected set; }
         public List<IObjectPool<DbConnection>> SlavePools { get; } = new List<IObjectPool<DbConnection>>();
         public DataType DataType { get; }
-        public string ConnectionString { get; }
-        public string[] SlaveConnectionStrings { get; }
-        public Guid Identifier { get; }
+        public string ConnectionString { get; protected set; }
+        public string[] SlaveConnectionStrings { get; protected set; }
+        public Guid Identifier { get; protected set; }
 
-        protected CommonUtils _util { get; set; }
+        public CommonUtils _util { get; set; }
         protected int slaveUnavailables = 0;
         private object slaveLock = new object();
         private Random slaveRandom = new Random();
+        protected Func<DbTransaction> ResolveTransaction;
 
         public AdoProvider(DataType dataType, string connectionString, string[] slaveConnectionStrings)
         {
@@ -123,6 +126,8 @@ namespace FreeSql.Internal.CommonProvider
             }
         }
 
+        public T QuerySingle<T>(string cmdText, object parms = null) => Query<T>(cmdText, parms).FirstOrDefault();
+        public T QuerySingle<T>(CommandType cmdType, string cmdText, params DbParameter[] cmdParms) => Query<T>(cmdType, cmdText, cmdParms).FirstOrDefault();
         public List<T> Query<T>(string cmdText, object parms = null) => Query<T>(null, null, null, CommandType.Text, cmdText, 0, GetDbParamtersByObject(cmdText, parms));
         public List<T> Query<T>(DbTransaction transaction, string cmdText, object parms = null) => Query<T>(null, null, transaction, CommandType.Text, cmdText, 0, GetDbParamtersByObject(cmdText, parms));
         public List<T> Query<T>(DbConnection connection, DbTransaction transaction, string cmdText, object parms = null) => Query<T>(null, connection, transaction, CommandType.Text, cmdText, 0, GetDbParamtersByObject(cmdText, parms));
@@ -849,14 +854,30 @@ namespace FreeSql.Internal.CommonProvider
                 foreach (var parm in cmdParms)
                 {
                     if (parm == null) continue;
+                    var isnew = false;
                     if (parm.Value == null) parm.Value = DBNull.Value;
-                    cmd.Parameters.Add(parm);
+                    else
+                    {
+                        if (parm.Value is Array || parm.Value is IList)
+                        {
+                            cmd.CommandText = Regex.Replace(cmd.CommandText, @"\s+(in|In|IN|iN)\s+[\:\?\@]" + parm.ParameterName.TrimStart('@', '?', ':'), m =>
+                            {
+                                isnew = true;
+                                var arr = parm.Value as IEnumerable;
+                                if (arr == null) return " IS NULL";
+                                var vals = new List<object>();
+                                foreach (var val in arr) vals.Add(val);
+                                return $" in {_util.FormatSql("{0}", new object[] { vals })}";
+                            });
+                        }
+                    }
+                    if (isnew == false) cmd.Parameters.Add(parm);
                 }
             }
 
             if (connection == null)
             {
-                var tran = transaction ?? TransactionCurrentThread;
+                var tran = transaction ?? ResolveTransaction?.Invoke() ?? TransactionCurrentThread;
                 if (tran != null && connection == null)
                 {
                     cmd.Connection = tran.Connection;

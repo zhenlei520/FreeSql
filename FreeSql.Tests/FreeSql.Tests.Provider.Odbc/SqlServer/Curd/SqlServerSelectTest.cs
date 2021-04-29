@@ -128,7 +128,7 @@ namespace FreeSql.Tests.Odbc.SqlServer
             //Assert.Equal(9989, g.sqlserver.Insert<Topic>(items).NoneParameter().ExecuteAffrows());
 
             var dt1 = select.Limit(10).ToDataTable();
-            var dt2 = select.Limit(10).ToDataTable("id, getdate()");
+            var dt2 = select.Limit(10).ToDataTable("Id, getdate()");
             var dt3 = select.Limit(10).ToDataTable(a => new { a.Id, a.Type.Name, now = DateTime.Now });
         }
         class TestDto
@@ -775,6 +775,16 @@ namespace FreeSql.Tests.Odbc.SqlServer
             var sql = select.OrderBy(a => new Random().NextDouble()).ToList();
         }
         [Fact]
+        public void OrderByRandom()
+        {
+            var t1 = select.OrderByRandom().Limit(10).ToSql("1");
+            Assert.Equal(@"SELECT TOP 10 1 
+FROM [tb_topic22] a 
+ORDER BY newid()", t1);
+            var t2 = select.OrderByRandom().Limit(10).ToList();
+        }
+
+        [Fact]
         public void Skip_Offset()
         {
             var sql = select.Offset(10).Limit(10).ToList();
@@ -889,7 +899,7 @@ WHERE (((cast(a.[Id] as nvarchar(100))) in (SELECT b.[Title]
         public void AsTable()
         {
 
-            var listt = select.AsTable((a, b) => "(select * from tb_topic22 where clicks > 10)").Page(1, 10).ToList();
+            var listt = select.AsTable((a, b) => "(select * from tb_topic22 where Clicks > 10)").Page(1, 10).ToList();
 
             Func<Type, string, string> tableRule = (type, oldname) =>
             {

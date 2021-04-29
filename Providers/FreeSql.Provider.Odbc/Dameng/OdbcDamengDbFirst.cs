@@ -100,7 +100,7 @@ namespace FreeSql.Odbc.Dameng
                     _dicDbToCs.TryAdd(dbfull, _dicDbToCs["interval day(2) to second(6)"]);
                     return OdbcType.Time;
                 case "date":
-                    _dicDbToCs.TryAdd(dbfull, _dicDbToCs["date(7)"]);
+                    _dicDbToCs.TryAdd(dbfull, _dicDbToCs["date"]);
                     return OdbcType.DateTime;
                 case "timestamp":
                     _dicDbToCs.TryAdd(dbfull, _dicDbToCs["timestamp(6)"]);
@@ -184,7 +184,7 @@ namespace FreeSql.Odbc.Dameng
                 { "number(10,2)", new DbToCs("(decimal?)", "decimal.Parse({0})", "{0}.ToString()", "decimal?", typeof(decimal), typeof(decimal?), "{0}.Value", "GetDecimal") },
 
                 { "interval day(2) to second(6)", new DbToCs("(TimeSpan?)", "TimeSpan.Parse(double.Parse({0}))", "{0}.Ticks.ToString()", "TimeSpan?", typeof(TimeSpan), typeof(TimeSpan?), "{0}.Value", "GetValue") },
-                { "date(7)", new DbToCs("(DateTime?)", "new DateTime(long.Parse({0}))", "{0}.Ticks.ToString()", "DateTime?", typeof(DateTime), typeof(DateTime?), "{0}.Value", "GetValue") },
+                { "date", new DbToCs("(DateTime?)", "new DateTime(long.Parse({0}))", "{0}.Ticks.ToString()", "DateTime?", typeof(DateTime), typeof(DateTime?), "{0}.Value", "GetValue") },
                 { "timestamp(6)", new DbToCs("(DateTime?)", "new DateTime(long.Parse({0}))", "{0}.Ticks.ToString()", "DateTime?", typeof(DateTime), typeof(DateTime?), "{0}.Value", "GetValue") },
                 { "timestamp(6) with local time zone", new DbToCs("(DateTime?)", "new DateTime(long.Parse({0}))", "{0}.Ticks.ToString()", "DateTime?", typeof(DateTime), typeof(DateTime?), "{0}.Value", "GetValue") },
 
@@ -270,7 +270,19 @@ b.comments,
 'TABLE'
 from all_tables a
 left join all_tab_comments b on b.owner = a.owner and b.table_name = a.table_name and b.table_type = 'TABLE'
-where {(ignoreCase ? "lower(a.owner)" : "a.owner")} in ({databaseIn}){(tbname == null ? "" : $" and {(ignoreCase ? "lower(a.table_name)" : "a.table_name")}={_commonUtils.FormatSql("{0}", tbname[1])}")}";
+where {(ignoreCase ? "lower(a.owner)" : "a.owner")} in ({databaseIn}){(tbname == null ? "" : $" and {(ignoreCase ? "lower(a.table_name)" : "a.table_name")}={_commonUtils.FormatSql("{0}", tbname[1])}")}
+
+UNION ALL
+
+select
+a.owner || '.' || a.view_name,
+a.owner,
+a.view_name,
+b.comments,
+'VIEW' AS tp
+from all_views a
+left join all_tab_comments b on b.owner = a.owner and b.table_name = a.view_name and b.table_type = 'VIEW'
+where {(ignoreCase ? "lower(a.owner)" : "a.owner")} in ({databaseIn}){(tbname == null ? "" : $" and {(ignoreCase ? "lower(a.view_name)" : "a.view_name")}={_commonUtils.FormatSql("{0}", tbname[1])}")}";
             var ds = _orm.Ado.ExecuteArray(CommandType.Text, sql);
             if (ds == null) return loc1;
 

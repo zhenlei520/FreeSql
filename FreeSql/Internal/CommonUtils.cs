@@ -14,6 +14,7 @@ using System.Linq.Expressions;
 using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Xml;
 using System.Xml.XPath;
@@ -23,7 +24,7 @@ namespace FreeSql.Internal
     public abstract class CommonUtils
     {
 
-        public abstract string GetNoneParamaterSqlValue(List<DbParameter> specialParams, string specialParamFlag, Type type, object value);
+        public abstract string GetNoneParamaterSqlValue(List<DbParameter> specialParams, string specialParamFlag, ColumnInfo col, Type type, object value);
         public abstract DbParameter AppendParamter(List<DbParameter> _params, string parameterName, ColumnInfo col, Type type, object value);
         public abstract DbParameter[] GetDbParamtersByObject(string sql, object obj);
         public abstract string FormatSql(string sql, params object[] args);
@@ -51,8 +52,21 @@ namespace FreeSql.Internal
         public abstract string Div(string left, string right, Type leftType, Type rightType);
         public abstract string Now { get; }
         public abstract string NowUtc { get; }
-        public abstract string QuoteWriteParamter(Type type, string paramterName);
-        public abstract string QuoteReadColumn(Type type, Type mapType, string columnName);
+        public abstract string QuoteWriteParamterAdapter(Type type, string paramterName);
+        protected abstract string QuoteReadColumnAdapter(Type type, Type mapType, string columnName);
+        public string RewriteColumn(ColumnInfo col, string sql)
+        {
+            if (string.IsNullOrWhiteSpace(col?.Attribute.RewriteSql) == false)
+                return string.Format(col.Attribute.RewriteSql, sql);
+            return sql;
+        }
+        public string RereadColumn(ColumnInfo col, string columnName)
+        {
+            var result = QuoteReadColumnAdapter(col.CsType, col.Attribute.MapType, columnName);
+            if (string.IsNullOrWhiteSpace(col?.Attribute.RereadSql) == false)
+                return string.Format(col.Attribute.RereadSql, result);
+            return result;
+        }
         public virtual string FieldAsAlias(string alias) => $" {alias}";
         public virtual string IIF(string test, string ifTrue, string ifElse) => $"case when {test} then {ifTrue} else {ifElse} end";
         public static string BytesSqlRaw(byte[] bytes)
@@ -156,6 +170,8 @@ namespace FreeSql.Internal
                 if (!string.IsNullOrEmpty(trycol.InsertValueSql)) attr.InsertValueSql = trycol.InsertValueSql;
                 if (trycol._Precision != null) attr.Precision = trycol.Precision;
                 if (trycol._Scale != null) attr.Scale = trycol.Scale;
+                if (!string.IsNullOrEmpty(trycol.RewriteSql)) attr.RewriteSql = trycol.RewriteSql;
+                if (!string.IsNullOrEmpty(trycol.RereadSql)) attr.RereadSql = trycol.RereadSql;
             }
             var attrs = proto.GetCustomAttributes(typeof(ColumnAttribute), false);
             foreach (var tryattrobj in attrs)
@@ -179,6 +195,8 @@ namespace FreeSql.Internal
                 if (!string.IsNullOrEmpty(tryattr.InsertValueSql)) attr.InsertValueSql = tryattr.InsertValueSql; 
                 if (tryattr._Precision != null) attr.Precision = tryattr.Precision;
                 if (tryattr._Scale != null) attr.Scale = tryattr.Scale;
+                if (!string.IsNullOrEmpty(tryattr.RewriteSql)) attr.RewriteSql = tryattr.RewriteSql;
+                if (!string.IsNullOrEmpty(tryattr.RereadSql)) attr.RereadSql = tryattr.RereadSql;
             }
             ColumnAttribute ret = null;
             if (!string.IsNullOrEmpty(attr.Name)) ret = attr;
@@ -198,6 +216,8 @@ namespace FreeSql.Internal
             if (!string.IsNullOrEmpty(attr.InsertValueSql)) ret = attr;
             if (attr._Precision != null) ret = attr;
             if (attr._Scale != null) ret = attr;
+            if (!string.IsNullOrEmpty(attr.RewriteSql)) ret = attr;
+            if (!string.IsNullOrEmpty(attr.RereadSql)) ret = attr;
             if (ret != null && ret.MapType == null) ret.MapType = proto.PropertyType;
             return ret;
         }
@@ -267,7 +287,7 @@ namespace FreeSql.Internal
             var pk1 = primarys.FirstOrDefault();
             if (primarys.Length == 1 && (type == pk1.CsType || type.IsNumberType() && pk1.CsType.IsNumberType()))
             {
-                return $"{aliasAndDot}{this.QuoteSqlName(pk1.Attribute.Name)} = {this.FormatSql("{0}", Utils.GetDataReaderValue(pk1.Attribute.MapType, dywhere))}";
+                return $"{aliasAndDot}{this.QuoteSqlName(pk1.Attribute.Name)} = {RewriteColumn(pk1, GetNoneParamaterSqlValue(null, null, pk1, pk1.Attribute.MapType, Utils.GetDataReaderValue(pk1.Attribute.MapType, dywhere)))}";
             }
             else if (primarys.Length > 0 && (type == table.Type || type.BaseType == table.Type))
             {
@@ -276,15 +296,15 @@ namespace FreeSql.Internal
                 foreach (var pk in primarys)
                 {
                     if (pkidx > 0) sb.Append(" AND ");
-                    sb.Append(aliasAndDot).Append(this.QuoteSqlName(pk.Attribute.Name));
-                    sb.Append(this.FormatSql(" = {0}", pk.GetDbValue(dywhere)));
+                    sb.Append(aliasAndDot).Append(this.QuoteSqlName(pk.Attribute.Name)).Append(" = ");
+                    sb.Append(RewriteColumn(pk, GetNoneParamaterSqlValue(null, null, pk, pk.Attribute.MapType, pk.GetDbValue(dywhere))));
                     ++pkidx;
                 }
                 return sb.ToString();
             }
             else if (primarys.Length == 1 && type == typeof(string))
             {
-                return $"{aliasAndDot}{this.QuoteSqlName(pk1.Attribute.Name)} = {this.FormatSql("{0}", Utils.GetDataReaderValue(pk1.Attribute.MapType, dywhere))}";
+                return $"{aliasAndDot}{this.QuoteSqlName(pk1.Attribute.Name)} = {RewriteColumn(pk1, GetNoneParamaterSqlValue(null, null, pk1, pk1.Attribute.MapType, Utils.GetDataReaderValue(pk1.Attribute.MapType, dywhere)))}";
             }
             else if (primarys.Length == 1 && dywhere is IEnumerable)
             {
@@ -297,18 +317,18 @@ namespace FreeSql.Internal
                 foreach (var i in ie)
                 {
                     isAny = true;
-                    if (ieidx > 0) sb.Append(",");
+                    if (ieidx > 0) sb.Append(',');
                     if (ieidx == 0)
                     {
                         var itype = i.GetType();
                         isEntityType = (itype == table.Type || itype.BaseType == table.Type);
                     }
-                    if (isEntityType) sb.Append(this.FormatSql("{0}", primarys[0].GetDbValue(i)));
-                    else sb.Append(this.FormatSql("{0}", Utils.GetDataReaderValue(pk1.Attribute.MapType, i)));
+                    if (isEntityType) sb.Append(RewriteColumn(primarys[0], GetNoneParamaterSqlValue(null, null, primarys[0], primarys[0].Attribute.MapType, primarys[0].GetDbValue(i))));
+                    else sb.Append(RewriteColumn(pk1, GetNoneParamaterSqlValue(null, null, pk1, pk1.Attribute.MapType, Utils.GetDataReaderValue(pk1.Attribute.MapType, i))));
                     ++ieidx;
                 }
                 if (isAny == false) return "";
-                sb.Append(")");
+                sb.Append(')');
                 return sb.ToString();
             }
             else if (dywhere is IEnumerable)
@@ -338,8 +358,8 @@ namespace FreeSql.Internal
                     if (trycol == null) continue;
 
                     if (psidx > 0) sb.Append(" AND ");
-                    sb.Append(aliasAndDot).Append(this.QuoteSqlName(trycol.Attribute.Name));
-                    sb.Append(this.FormatSql(" = {0}", Utils.GetDataReaderValue(trycol.Attribute.MapType, p.GetValue(dywhere, null))));
+                    sb.Append(aliasAndDot).Append(this.QuoteSqlName(trycol.Attribute.Name)).Append(" = ");
+                    sb.Append(RewriteColumn(trycol, GetNoneParamaterSqlValue(null, null, trycol, trycol.Attribute.MapType, Utils.GetDataReaderValue(trycol.Attribute.MapType, p.GetValue(dywhere, null)))));
                     ++psidx;
                 }
                 if (psidx == 0) return "";
@@ -347,21 +367,21 @@ namespace FreeSql.Internal
             }
         }
 
-        public string WhereItems<TEntity>(TableInfo table, string aliasAndDot, IEnumerable<TEntity> items)
+        public string WhereItems<TEntity>(ColumnInfo[] primarys, string aliasAndDot, IEnumerable<TEntity> items)
         {
             if (items == null || items.Any() == false) return null;
-            if (table.Primarys.Any() == false) return null;
+            if (primarys.Any() == false) return null;
             var its = items.Where(a => a != null).ToArray();
 
-            var pk1 = table.Primarys.FirstOrDefault();
-            if (table.Primarys.Length == 1)
+            var pk1 = primarys.FirstOrDefault();
+            if (primarys.Length == 1)
             {
                 var sbin = new StringBuilder();
                 sbin.Append(aliasAndDot).Append(this.QuoteSqlName(pk1.Attribute.Name));
                 var indt = its.Select(a => pk1.GetDbValue(a)).Where(a => a != null).ToArray();
                 if (indt.Any() == false) return null;
-                if (indt.Length == 1) sbin.Append(" = ").Append(this.FormatSql("{0}", indt.First()));
-                else sbin.Append(" IN (").Append(string.Join(",", indt.Select(a => this.FormatSql("{0}", a)))).Append(")");
+                if (indt.Length == 1) sbin.Append(" = ").Append(RewriteColumn(pk1, GetNoneParamaterSqlValue(null, null, pk1, pk1.Attribute.MapType, indt.First())));
+                else sbin.Append(" IN (").Append(string.Join(",", indt.Select(a => RewriteColumn(pk1, GetNoneParamaterSqlValue(null, null, pk1, pk1.Attribute.MapType, a))))).Append(')');
                 return sbin.ToString();
             }
             var dicpk = its.Length > 5 ? new Dictionary<string, bool>() : null;
@@ -370,14 +390,14 @@ namespace FreeSql.Internal
             foreach (var item in its)
             {
                 var filter = "";
-                foreach (var pk in table.Primarys)
-                    filter += $" AND {aliasAndDot}{this.QuoteSqlName(pk.Attribute.Name)} = {this.FormatSql("{0}", pk.GetDbValue(item))}";
+                foreach (var pk in primarys)
+                    filter += $" AND {aliasAndDot}{this.QuoteSqlName(pk.Attribute.Name)} = {RewriteColumn(pk, GetNoneParamaterSqlValue(null, null, pk, pk.Attribute.MapType, pk.GetDbValue(item)))}";
                 if (string.IsNullOrEmpty(filter)) continue;
                 if (sb != null)
                 {
                     sb.Append(" OR (");
                     sb.Append(filter.Substring(5));
-                    sb.Append(")");
+                    sb.Append(')');
                     ++iidx;
                 }
                 if (dicpk != null)
@@ -399,7 +419,7 @@ namespace FreeSql.Internal
                 {
                     sb.Append(" OR (");
                     sb.Append(fil.Key);
-                    sb.Append(")");
+                    sb.Append(')');
                 }
             }
             return iidx == 1 ? sb.Remove(0, 5).Remove(sb.Length - 1, 1).ToString() : sb.Remove(0, 4).ToString();
@@ -447,6 +467,7 @@ namespace FreeSql.Internal
             }
         }
 
+        static int _CodeBaseNotSupportedException = 0;
         /// <summary>
         /// 通过属性的注释文本，通过 xml 读取
         /// </summary>
@@ -464,7 +485,17 @@ namespace FreeSql.Internal
                 var xmlPath = regex.Replace(localType.Assembly.Location, ".xml");
                 if (File.Exists(xmlPath) == false)
                 {
-                    if (string.IsNullOrEmpty(localType.Assembly.CodeBase)) return null;
+                    if (_CodeBaseNotSupportedException == 1) return null;
+                    try
+                    {
+                        if (string.IsNullOrEmpty(localType.Assembly.CodeBase)) return null;
+                    }
+                    catch (NotSupportedException) //NotSupportedException: CodeBase is not supported on assemblies loaded from a single-file bundle.
+                    {
+                        Interlocked.Exchange(ref _CodeBaseNotSupportedException, 1);
+                        return null;
+                    }
+
                     xmlPath = regex.Replace(localType.Assembly.CodeBase, ".xml");
                     if (xmlPath.StartsWith("file:///") && Uri.TryCreate(xmlPath, UriKind.Absolute, out var tryuri))
                         xmlPath = tryuri.LocalPath;

@@ -191,6 +191,10 @@ namespace FreeSql.Tests
         {
             [Column(IsIdentity = true)]
             public int? Id { get; set; }
+
+            public string name { get; set; }
+            [Navigate(nameof(tshop01.cateId))]
+            public List<tshop01> tshops { get; set; }
         }
         public class tshop01
         {
@@ -203,7 +207,28 @@ namespace FreeSql.Tests
         [Fact]
         public void Test03()
         {
+            g.sqlite.Delete<tcate01>().Where("1=1").ExecuteAffrows();
+            g.sqlite.Delete<tshop01>().Where("1=1").ExecuteAffrows();
+            var tshoprepo = g.sqlite.GetRepository<tcate01>();
+            tshoprepo.DbContextOptions.EnableAddOrUpdateNavigateList = true;
+            tshoprepo.Insert(new tcate01[]
+            {
+                new tcate01 { name = "tcate1", tshops = new List<tshop01>{ new tshop01(), new tshop01(), new tshop01() } },
+                new tcate01 { name = "tcate1", tshops = new List<tshop01>{ new tshop01(), new tshop01(), new tshop01() } }
+            });
+
             var tshop01sql = g.sqlite.Select<tshop01>().Include(a => a.cate).ToSql();
+            var tshop02sql = g.sqlite.Select<tshop01>().IncludeByPropertyName("cate").ToSql();
+
+            var tshop03sql = g.sqlite.Select<tshop01>().IncludeMany(a => a.cate.tshops).ToSql();
+            var tshop04sql = g.sqlite.Select<tshop01>().IncludeByPropertyName("cate.tshops").ToSql();
+
+            var tshop01lst = g.sqlite.Select<tshop01>().Include(a => a.cate).ToList();
+            var tshop02lst = g.sqlite.Select<tshop01>().IncludeByPropertyName("cate").ToList();
+
+            var tshop03lst = g.sqlite.Select<tshop01>().IncludeMany(a => a.cate.tshops).ToList();
+            var tshop04lst = g.sqlite.Select<tshop01>().IncludeByPropertyName("cate.tshops").ToList();
+
 
 
             var testisnullsql1 = g.sqlite.Select<t102>().Where(a => SqlExt.IsNull(a.isxx, false).Equals( true)).ToSql();
@@ -244,6 +269,10 @@ namespace FreeSql.Tests
             Assert.Throws<ArgumentException>(() => g.sqlite.Update<testUpdateNonePk>().SetSource(new testUpdateNonePk()).ExecuteAffrows());
 
             g.sqlite.Insert(new testInsertNullable()).NoneParameter().ExecuteAffrows();
+
+
+            g.sqlite.Select<testInsertNullable>().Select(a => a.Id).ToList();
+
             var ddlsql = g.sqlite.CodeFirst.GetComparisonDDLStatements(typeof(testInsertNullable), "tb123123");
             Assert.Equal(@"CREATE TABLE IF NOT EXISTS ""main"".""tb123123"" (  
   ""Id"" INTEGER PRIMARY KEY AUTOINCREMENT, 
@@ -639,7 +668,7 @@ INNER JOIN ""userinfo"" p ON p.""userid"" = o.""userid""", select16Sql2);
             fsql.Insert<OrderDetail>(new OrderDetail { OrderNo = "1002", ItemNo = "I011", Qty = 1 }).ExecuteAffrows();
             fsql.Insert<OrderDetail>(new OrderDetail { OrderNo = "1002", ItemNo = "I012", Qty = 1 }).ExecuteAffrows();
             fsql.Insert<OrderDetail>(new OrderDetail { OrderNo = "1002", ItemNo = "I013", Qty = 1 }).ExecuteAffrows();
-            fsql.Ado.Query<object>("select * from orderdetail left join ordermain on orderdetail.orderno=ordermain.orderno where ordermain.orderno='1001'");
+            fsql.Ado.Query<object>("select * from OrderDetail left join OrderMain on OrderDetail.OrderNo=OrderMain.OrderNo where OrderMain.OrderNo='1001'");
 
 
             g.oracle.Delete<SendInfo>().Where("1=1").ExecuteAffrows();

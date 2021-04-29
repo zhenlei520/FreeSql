@@ -742,6 +742,10 @@ namespace FreeSql.Tests.Oracle
 
             var fkfjfj = select.GroupBy(a => a.Title)
                 .ToList(a => a.Sum(a.Value.TypeGuid));
+            var fkfjfj2 = select.GroupBy(a => a.Title)
+                .Page(2, 10)
+                .OrderBy(a => a.Key)
+                .ToList(a => a.Sum(a.Value.TypeGuid));
 
             var aggsql1 = select
                 .GroupBy(a => a.Title)
@@ -819,6 +823,16 @@ namespace FreeSql.Tests.Oracle
         {
             var sql = select.Offset(10).OrderBy(a => new Random().NextDouble()).ToList();
         }
+        [Fact]
+        public void OrderByRandom()
+        {
+            var t1 = select.OrderByRandom().Limit(10).ToSql("1");
+            Assert.Equal(@"SELECT  t.* FROM (SELECT 1 
+FROM ""TB_TOPIC22"" a 
+ORDER BY dbms_random.value) t WHERE ROWNUM < 11", t1);
+            var t2 = select.OrderByRandom().Limit(10).ToList();
+        }
+
         [Fact]
         public void Skip_Offset()
         {

@@ -3,12 +3,13 @@ using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace FreeSql.ShenTong.Curd
 {
 
-    class ShenTongDelete<T1> : Internal.CommonProvider.DeleteProvider<T1> where T1 : class
+    class ShenTongDelete<T1> : Internal.CommonProvider.DeleteProvider<T1>
     {
         public ShenTongDelete(IFreeSql orm, CommonUtils commonUtils, CommonExpression commonExpression, object dywhere)
             : base(orm, commonUtils, commonExpression, dywhere)
@@ -27,7 +28,7 @@ namespace FreeSql.ShenTong.Curd
             foreach (var col in _table.Columns.Values)
             {
                 if (colidx > 0) sb.Append(", ");
-                sb.Append(_commonUtils.QuoteReadColumn(col.CsType, col.Attribute.MapType, _commonUtils.QuoteSqlName(col.Attribute.Name))).Append(" as ").Append(_commonUtils.QuoteSqlName(col.CsName));
+                sb.Append(_commonUtils.RereadColumn(col, _commonUtils.QuoteSqlName(col.Attribute.Name))).Append(" as ").Append(_commonUtils.QuoteSqlName(col.CsName));
                 ++colidx;
             }
             sql = sb.ToString();
@@ -56,7 +57,7 @@ namespace FreeSql.ShenTong.Curd
 
 #if net40
 #else
-        async public override Task<List<T1>> ExecuteDeletedAsync()
+        async public override Task<List<T1>> ExecuteDeletedAsync(CancellationToken cancellationToken = default)
         {
             var sql = this.ToSql();
             if (string.IsNullOrEmpty(sql)) return new List<T1>();
@@ -68,7 +69,7 @@ namespace FreeSql.ShenTong.Curd
             foreach (var col in _table.Columns.Values)
             {
                 if (colidx > 0) sb.Append(", ");
-                sb.Append(_commonUtils.QuoteReadColumn(col.CsType, col.Attribute.MapType, _commonUtils.QuoteSqlName(col.Attribute.Name))).Append(" as ").Append(_commonUtils.QuoteSqlName(col.CsName));
+                sb.Append(_commonUtils.RereadColumn(col, _commonUtils.QuoteSqlName(col.Attribute.Name))).Append(" as ").Append(_commonUtils.QuoteSqlName(col.CsName));
                 ++colidx;
             }
             sql = sb.ToString();
@@ -79,7 +80,7 @@ namespace FreeSql.ShenTong.Curd
             Exception exception = null;
             try
             {
-                ret = await _orm.Ado.QueryAsync<T1>(_table.TypeLazy ?? _table.Type, _connection, _transaction, CommandType.Text, sql, _commandTimeout, dbParms);
+                ret = await _orm.Ado.QueryAsync<T1>(_table.TypeLazy ?? _table.Type, _connection, _transaction, CommandType.Text, sql, _commandTimeout, dbParms, cancellationToken);
             }
             catch (Exception ex)
             {

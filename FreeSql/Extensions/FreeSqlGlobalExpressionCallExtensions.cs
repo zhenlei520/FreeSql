@@ -117,6 +117,18 @@ namespace FreeSql
             return default(TValue);
         }
 
+        /// <summary>
+        /// count(distinct name)
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="column"></param>
+        /// <returns></returns>
+        public static long DistinctCount<T>(T column)
+        {
+            expContext.Value.Result = $"count(distinct {expContext.Value.ParsedContent["column"]})";
+            return 0;
+        }
+
         #region 大小判断
         /// <summary>
         /// 大于 &gt;
@@ -167,6 +179,18 @@ namespace FreeSql
         /// <param name="column"></param>
         /// <returns></returns>
         public static IGroupConcat GroupConcat(object column) => SqlExtExtensions.GroupConcat(column);
+        /// <summary>
+        /// MySql find_in_set(str, strlist)
+        /// </summary>
+        /// <typeparam name="TValue"></typeparam>
+        /// <param name="str"></param>
+        /// <param name="strlist"></param>
+        /// <returns></returns>
+        public static int FindInSet<TValue>(TValue str, string strlist)
+        {
+            expContext.Value.Result = $"find_in_set({expContext.Value.ParsedContent["str"]}, {expContext.Value.ParsedContent["strlist"]})";
+            return 0;
+        }
 
         /// <summary>
         /// PostgreSQL string_agg(.., ..)

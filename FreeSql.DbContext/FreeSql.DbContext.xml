@@ -4,6 +4,11 @@
         <name>FreeSql.DbContext</name>
     </assembly>
     <members>
+        <member name="P:FreeSql.DbContext.Orm">
+            <summary>
+            该对象 Select/Delete/Insert/Update/InsertOrUpdate 与 DbContext 事务保持一致，可省略传递 WithTransaction
+            </summary>
+        </member>
         <member name="M:FreeSql.DbContext.Add``1(``0)">
             <summary>
             添加
@@ -129,13 +134,6 @@
             <summary>
             清空状态数据
             </summary>
-        </member>
-        <member name="M:FreeSql.DbSet`1.RemoveAsync(System.Linq.Expressions.Expression{System.Func{`0,System.Boolean}})">
-            <summary>
-            根据 lambda 条件删除数据
-            </summary>
-            <param name="predicate"></param>
-            <returns></returns>
         </member>
         <member name="M:FreeSql.DbSet`1.Add(`0)">
             <summary>
@@ -348,6 +346,11 @@
         <member name="T:FreeSql.IUnitOfWork">
             <summary>
             工作单元
+            </summary>
+        </member>
+        <member name="P:FreeSql.IUnitOfWork.Orm">
+            <summary>
+            该对象 Select/Delete/Insert/Update/InsertOrUpdate 与工作单元事务保持一致，可省略传递 WithTransaction
             </summary>
         </member>
         <member name="M:FreeSql.IUnitOfWork.GetOrBeginTransaction(System.Boolean)">

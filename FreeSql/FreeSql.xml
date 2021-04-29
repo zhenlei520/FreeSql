@@ -115,6 +115,21 @@
             decimal/numeric 类型的小数位长度
             </summary>
         </member>
+        <member name="P:FreeSql.DataAnnotations.ColumnAttribute.RewriteSql">
+            <summary>
+            重写功能<para></para>
+            比如：[Column(RewriteSql = &quot;geography::STGeomFromText({0},4236)&quot;)]<para></para>
+            插入：INSERT INTO [table]([geo]) VALUES(geography::STGeomFromText('...',4236))<para></para>
+            提示：更新也生效
+            </summary>
+        </member>
+        <member name="P:FreeSql.DataAnnotations.ColumnAttribute.RereadSql">
+            <summary>
+            重读功能<para></para>
+            比如：[Column(RereadSql = &quot;{0}.STAsText()&quot;)]<para></para>
+            查询：SELECT a.[id], a.[geo].STAsText() FROM [table] a
+            </summary>
+        </member>
         <member name="M:FreeSql.DataAnnotations.ColumnFluent.Name(System.String)">
             <summary>
             数据库列名
@@ -229,6 +244,25 @@
             </summary>
             <param name="precision">总长度</param>
             <param name="scale">小数位长度</param>
+            <returns></returns>
+        </member>
+        <member name="M:FreeSql.DataAnnotations.ColumnFluent.RewriteSql(System.String)">
+            <summary>
+            重写功能<para></para>
+            比如：[Column(RewriteSql = &quot;geography::STGeomFromText({0},4236)&quot;)]<para></para>
+            插入：INSERT INTO [table]([geo]) VALUES(geography::STGeomFromText('...',4236))<para></para>
+            提示：更新也生效
+            </summary>
+            <param name="value"></param>
+            <returns></returns>
+        </member>
+        <member name="M:FreeSql.DataAnnotations.ColumnFluent.RereadSql(System.String)">
+            <summary>
+            重读功能<para></para>
+            比如：[Column(RereadSql = &quot;{0}.STAsText()&quot;)]<para></para>
+            查询：SELECT a.[id], a.[geo].STAsText() FROM [table] a
+            </summary>
+            <param name="value"></param>
             <returns></returns>
         </member>
         <member name="T:FreeSql.DataAnnotations.ExpressionCallAttribute">
@@ -616,6 +650,12 @@
             Firebird 是一个跨平台的关系数据库，能作为多用户环境下的数据库服务器运行，也提供嵌入式数据库的实现
             </summary>
         </member>
+        <member name="F:FreeSql.DataType.Custom">
+            <summary>
+            自定义适配器，访问任何数据库<para></para>
+            注意：该类型不提供 DbFirst/CodeFirst 功能
+            </summary>
+        </member>
         <member name="M:FreeSql.AdoNetExtensions.GetIFreeSql(System.Data.IDbConnection)">
             <summary>
             获取 IDbConnection 对应的 IFreeSql 实例
@@ -635,6 +675,7 @@
             插入数据，传入实体
             </summary>
             <typeparam name="T1"></typeparam>
+            <param name="that"></param>
             <param name="source"></param>
             <returns></returns>
         </member>
@@ -643,6 +684,7 @@
             插入数据，传入实体数组
             </summary>
             <typeparam name="T1"></typeparam>
+            <param name="that"></param>
             <param name="source"></param>
             <returns></returns>
         </member>
@@ -651,6 +693,7 @@
             插入数据，传入实体集合
             </summary>
             <typeparam name="T1"></typeparam>
+            <param name="that"></param>
             <param name="source"></param>
             <returns></returns>
         </member>
@@ -659,6 +702,7 @@
             插入数据，传入实体集合
             </summary>
             <typeparam name="T1"></typeparam>
+            <param name="that"></param>
             <param name="source"></param>
             <returns></returns>
         </member>
@@ -678,6 +722,7 @@
             注意区别：FreeSql.Repository 仓储也有 InsertOrUpdate 方法（不依赖数据库特性）
             </summary>
             <typeparam name="T1"></typeparam>
+            <param name="that"></param>
             <returns></returns>
         </member>
         <member name="M:FreeSql.AdoNetExtensions.Update``1(System.Data.IDbConnection)">
@@ -685,6 +730,7 @@
             修改数据
             </summary>
             <typeparam name="T1"></typeparam>
+            <param name="that"></param>
             <returns></returns>
         </member>
         <member name="M:FreeSql.AdoNetExtensions.Update``1(System.Data.IDbConnection,System.Object)">
@@ -692,6 +738,7 @@
             修改数据，传入动态条件，如：主键值 | new[]{主键值1,主键值2} | TEntity1 | new[]{TEntity1,TEntity2} | new{id=1}
             </summary>
             <typeparam name="T1"></typeparam>
+            <param name="that"></param>
             <param name="dywhere">主键值、主键值集合、实体、实体集合、匿名对象、匿名对象集合</param>
             <returns></returns>
         </member>
@@ -700,6 +747,7 @@
             查询数据
             </summary>
             <typeparam name="T1"></typeparam>
+            <param name="that"></param>
             <returns></returns>
         </member>
         <member name="M:FreeSql.AdoNetExtensions.Select``1(System.Data.IDbConnection,System.Object)">
@@ -707,6 +755,7 @@
             查询数据，传入动态条件，如：主键值 | new[]{主键值1,主键值2} | TEntity1 | new[]{TEntity1,TEntity2} | new{id=1}
             </summary>
             <typeparam name="T1"></typeparam>
+            <param name="that"></param>
             <param name="dywhere">主键值、主键值集合、实体、实体集合、匿名对象、匿名对象集合</param>
             <returns></returns>
         </member>
@@ -715,6 +764,7 @@
             删除数据
             </summary>
             <typeparam name="T1"></typeparam>
+            <param name="that"></param>
             <returns></returns>
         </member>
         <member name="M:FreeSql.AdoNetExtensions.Delete``1(System.Data.IDbConnection,System.Object)">
@@ -722,6 +772,7 @@
             删除数据，传入动态条件，如：主键值 | new[]{主键值1,主键值2} | TEntity1 | new[]{TEntity1,TEntity2} | new{id=1}
             </summary>
             <typeparam name="T1"></typeparam>
+            <param name="that"></param>
             <param name="dywhere">主键值、主键值集合、实体、实体集合、匿名对象、匿名对象集合</param>
             <returns></returns>
         </member>
@@ -729,54 +780,63 @@
             <summary>
             多表查询
             </summary>
+            <param name="that"></param>
             <returns></returns>
         </member>
         <member name="M:FreeSql.AdoNetExtensions.Select``3(System.Data.IDbConnection)">
             <summary>
             多表查询
             </summary>
+            <param name="that"></param>
             <returns></returns>
         </member>
         <member name="M:FreeSql.AdoNetExtensions.Select``4(System.Data.IDbConnection)">
             <summary>
             多表查询
             </summary>
+            <param name="that"></param>
             <returns></returns>
         </member>
         <member name="M:FreeSql.AdoNetExtensions.Select``5(System.Data.IDbConnection)">
             <summary>
             多表查询
             </summary>
+            <param name="that"></param>
             <returns></returns>
         </member>
         <member name="M:FreeSql.AdoNetExtensions.Select``6(System.Data.IDbConnection)">
             <summary>
             多表查询
             </summary>
+            <param name="that"></param>
             <returns></returns>
         </member>
         <member name="M:FreeSql.AdoNetExtensions.Select``7(System.Data.IDbConnection)">
             <summary>
             多表查询
             </summary>
+            <param name="that"></param>
             <returns></returns>
         </member>
         <member name="M:FreeSql.AdoNetExtensions.Select``8(System.Data.IDbConnection)">
             <summary>
             多表查询
             </summary>
+            <param name="that"></param>
             <returns></returns>
         </member>
         <member name="M:FreeSql.AdoNetExtensions.Select``9(System.Data.IDbConnection)">
             <summary>
             多表查询
             </summary>
+            <param name="that"></param>
             <returns></returns>
         </member>
         <member name="M:FreeSql.AdoNetExtensions.Select``10(System.Data.IDbConnection)">
             <summary>
             多表查询
             </summary>
+            <param name="that"></param>
             <returns></returns>
         </member>
         <member name="M:FreeSql.AdoNetExtensions.Insert``1(System.Data.IDbTransaction)">
@@ -791,6 +851,7 @@
             插入数据，传入实体
             </summary>
             <typeparam name="T1"></typeparam>
+            <param name="that"></param>
             <param name="source"></param>
             <returns></returns>
         </member>
@@ -799,6 +860,7 @@
             插入数据，传入实体数组
             </summary>
             <typeparam name="T1"></typeparam>
+            <param name="that"></param>
             <param name="source"></param>
             <returns></returns>
         </member>
@@ -807,6 +869,7 @@
             插入数据，传入实体集合
             </summary>
             <typeparam name="T1"></typeparam>
+            <param name="that"></param>
             <param name="source"></param>
             <returns></returns>
         </member>
@@ -815,6 +878,7 @@
             插入数据，传入实体集合
             </summary>
             <typeparam name="T1"></typeparam>
+            <param name="that"></param>
             <param name="source"></param>
             <returns></returns>
         </member>
@@ -833,6 +897,7 @@
             注意区别：FreeSql.Repository 仓储也有 InsertOrUpdate 方法（不依赖数据库特性）
             </summary>
             <typeparam name="T1"></typeparam>
+            <param name="that"></param>
             <returns></returns>
         </member>
         <member name="M:FreeSql.AdoNetExtensions.Update``1(System.Data.IDbTransaction)">
@@ -840,6 +905,7 @@
             修改数据
             </summary>
             <typeparam name="T1"></typeparam>
+            <param name="that"></param>
             <returns></returns>
         </member>
         <member name="M:FreeSql.AdoNetExtensions.Update``1(System.Data.IDbTransaction,System.Object)">
@@ -847,6 +913,7 @@
             修改数据，传入动态条件，如：主键值 | new[]{主键值1,主键值2} | TEntity1 | new[]{TEntity1,TEntity2} | new{id=1}
             </summary>
             <typeparam name="T1"></typeparam>
+            <param name="that"></param>
             <param name="dywhere">主键值、主键值集合、实体、实体集合、匿名对象、匿名对象集合</param>
             <returns></returns>
         </member>
@@ -855,6 +922,7 @@
             查询数据
             </summary>
             <typeparam name="T1"></typeparam>
+            <param name="that"></param>
             <returns></returns>
         </member>
         <member name="M:FreeSql.AdoNetExtensions.Select``1(System.Data.IDbTransaction,System.Object)">
@@ -862,6 +930,7 @@
             查询数据，传入动态条件，如：主键值 | new[]{主键值1,主键值2} | TEntity1 | new[]{TEntity1,TEntity2} | new{id=1}
             </summary>
             <typeparam name="T1"></typeparam>
+            <param name="that"></param>
             <param name="dywhere">主键值、主键值集合、实体、实体集合、匿名对象、匿名对象集合</param>
             <returns></returns>
         </member>
@@ -870,6 +939,7 @@
             删除数据
             </summary>
             <typeparam name="T1"></typeparam>
+            <param name="that"></param>
             <returns></returns>
         </member>
         <member name="M:FreeSql.AdoNetExtensions.Delete``1(System.Data.IDbTransaction,System.Object)">
@@ -877,6 +947,7 @@
             删除数据，传入动态条件，如：主键值 | new[]{主键值1,主键值2} | TEntity1 | new[]{TEntity1,TEntity2} | new{id=1}
             </summary>
             <typeparam name="T1"></typeparam>
+            <param name="that"></param>
             <param name="dywhere">主键值、主键值集合、实体、实体集合、匿名对象、匿名对象集合</param>
             <returns></returns>
         </member>
@@ -1123,6 +1194,14 @@
             <param name="defaultValue"></param>
             <returns></returns>
         </member>
+        <member name="M:FreeSql.SqlExt.DistinctCount``1(``0)">
+            <summary>
+            count(distinct name)
+            </summary>
+            <typeparam name="T"></typeparam>
+            <param name="column"></param>
+            <returns></returns>
+        </member>
         <member name="M:FreeSql.SqlExt.GreaterThan``1(``0,``0)">
             <summary>
             大于 &gt;
@@ -1158,6 +1237,15 @@
             MySql group_concat(distinct .. order by .. separator ..)
             </summary>
             <param name="column"></param>
+            <returns></returns>
+        </member>
+        <member name="M:FreeSql.SqlExt.FindInSet``1(``0,System.String)">
+            <summary>
+            MySql find_in_set(str, strlist)
+            </summary>
+            <typeparam name="TValue"></typeparam>
+            <param name="str"></param>
+            <param name="strlist"></param>
             <returns></returns>
         </member>
         <member name="M:FreeSql.SqlExt.StringAgg(System.Object,System.Object)">
@@ -1322,9 +1410,19 @@
         </member>
         <member name="M:FreeSql.IDelete`1.Where(System.String,System.Object)">
             <summary>
-            原生sql语法条件，Where("id = ?id", new { id = 1 })<para></para>
+            原生sql语法条件，Where("id = @id", new { id = 1 })<para></para>
             提示：parms 参数还可以传 Dictionary&lt;string, object&gt;
             </summary>
+            <param name="sql">sql语法条件</param>
+            <param name="parms">参数</param>
+            <returns></returns>
+        </member>
+        <member name="M:FreeSql.IDelete`1.WhereIf(System.Boolean,System.String,System.Object)">
+            <summary>
+            原生sql语法条件，Where("id = @id", new { id = 1 })<para></para>
+            提示：parms 参数还可以传 Dictionary&lt;string, object&gt;
+            </summary>
+            <param name="condition">true 时生效</param>
             <param name="sql">sql语法条件</param>
             <param name="parms">参数</param>
             <returns></returns>
@@ -1639,6 +1737,17 @@
             使用属性名作为字段别名
             </summary>
         </member>
+        <member name="M:FreeSql.ISelect0`2.Cancel(System.Func{System.Boolean})">
+            <summary>
+            控制取消本次查询<para></para>
+            * 不会产生额外的异常<para></para>
+            * 取消成功，则不执行 SQL 命令<para></para>
+            * 取消成功，直接返回没有记录时候的返回值<para></para>
+            * 取消成功，如 List&lt;T&gt; 返回 0 元素列表，不是 null，仍然是旧机制<para></para>
+            </summary>
+            <param name="cancel">返回 true，则不会执行 SQL 命令</param>
+            <returns></returns>
+        </member>
         <member name="M:FreeSql.ISelect0`2.WithTransaction(System.Data.Common.DbTransaction)">
             <summary>
             指定事务对象
@@ -1853,7 +1962,7 @@
         </member>
         <member name="M:FreeSql.ISelect0`2.LeftJoin(System.String,System.Object)">
             <summary>
-            左联查询，使用原生sql语法，LeftJoin("type b on b.id = a.id and b.clicks > ?clicks", new { clicks = 1 })<para></para>
+            左联查询，使用原生sql语法，LeftJoin("type b on b.id = a.id and b.clicks > @clicks", new { clicks = 1 })<para></para>
             提示：parms 参数还可以传 Dictionary&lt;string, object&gt;
             </summary>
             <param name="sql">sql语法条件</param>
@@ -1862,7 +1971,7 @@
         </member>
         <member name="M:FreeSql.ISelect0`2.InnerJoin(System.String,System.Object)">
             <summary>
-            联接查询，使用原生sql语法，InnerJoin("type b on b.id = a.id and b.clicks > ?clicks", new { clicks = 1 })<para></para>
+            联接查询，使用原生sql语法，InnerJoin("type b on b.id = a.id and b.clicks > @clicks", new { clicks = 1 })<para></para>
             提示：parms 参数还可以传 Dictionary&lt;string, object&gt;
             </summary>
             <param name="sql">sql语法条件</param>
@@ -1871,7 +1980,7 @@
         </member>
         <member name="M:FreeSql.ISelect0`2.RightJoin(System.String,System.Object)">
             <summary>
-            右联查询，使用原生sql语法，RightJoin("type b on b.id = a.id and b.clicks > ?clicks", new { clicks = 1 })<para></para>
+            右联查询，使用原生sql语法，RightJoin("type b on b.id = a.id and b.clicks > @clicks", new { clicks = 1 })<para></para>
             提示：parms 参数还可以传 Dictionary&lt;string, object&gt;
             </summary>
             <param name="sql">sql语法条件</param>
@@ -1888,7 +1997,7 @@
         </member>
         <member name="M:FreeSql.ISelect0`2.Where(System.String,System.Object)">
             <summary>
-            原生sql语法条件，Where("id = ?id", new { id = 1 })<para></para>
+            原生sql语法条件，Where("id = @id", new { id = 1 })<para></para>
             提示：parms 参数还可以传 Dictionary&lt;string, object&gt;
             </summary>
             <param name="sql">sql语法条件</param>
@@ -1897,7 +2006,7 @@
         </member>
         <member name="M:FreeSql.ISelect0`2.WhereIf(System.Boolean,System.String,System.Object)">
             <summary>
-            原生sql语法条件，WhereIf(true, "id = ?id", new { id = 1 })<para></para>
+            原生sql语法条件，WhereIf(true, "id = @id", new { id = 1 })<para></para>
             提示：parms 参数还可以传 Dictionary&lt;string, object&gt;
             </summary>
             <param name="condition">true 时生效</param>
@@ -1937,7 +2046,7 @@
         </member>
         <member name="M:FreeSql.ISelect0`2.GroupBy(System.String,System.Object)">
             <summary>
-            按原生sql语法分组，GroupBy("concat(name, ?cc)", new { cc = 1 })<para></para>
+            按原生sql语法分组，GroupBy("concat(name, @cc)", new { cc = 1 })<para></para>
             提示：parms 参数还可以传 Dictionary&lt;string, object&gt;
             </summary>
             <param name="sql">sql语法</param>
@@ -1946,7 +2055,7 @@
         </member>
         <member name="M:FreeSql.ISelect0`2.Having(System.String,System.Object)">
             <summary>
-            按原生sql语法聚合条件过滤，Having("count(name) = ?cc", new { cc = 1 })<para></para>
+            按原生sql语法聚合条件过滤，Having("count(name) = @cc", new { cc = 1 })<para></para>
             提示：parms 参数还可以传 Dictionary&lt;string, object&gt;
             </summary>
             <param name="sql">sql语法条件</param>
@@ -1955,7 +2064,7 @@
         </member>
         <member name="M:FreeSql.ISelect0`2.OrderBy(System.String,System.Object)">
             <summary>
-            按原生sql语法排序，OrderBy("count(name) + ?cc desc", new { cc = 1 })<para></para>
+            按原生sql语法排序，OrderBy("count(name) + @cc desc", new { cc = 1 })<para></para>
             提示：parms 参数还可以传 Dictionary&lt;string, object&gt;
             </summary>
             <param name="sql">sql语法</param>
@@ -1964,7 +2073,7 @@
         </member>
         <member name="M:FreeSql.ISelect0`2.OrderBy(System.Boolean,System.String,System.Object)">
             <summary>
-            按原生sql语法排序，OrderBy(true, "count(name) + ?cc desc", new { cc = 1 })<para></para>
+            按原生sql语法排序，OrderBy(true, "count(name) + @cc desc", new { cc = 1 })<para></para>
             提示：parms 参数还可以传 Dictionary&lt;string, object&gt;
             </summary>
             <param name="condition">true 时生效</param>
@@ -2025,6 +2134,13 @@
             </summary>
             <param name="pageNumber">第几页</param>
             <param name="pageSize">每页多少</param>
+            <returns></returns>
+        </member>
+        <member name="M:FreeSql.ISelect0`2.Page(FreeSql.Internal.Model.BasePagingInfo)">
+            <summary>
+            分页
+            </summary>
+            <param name="pagingInfo">分页信息</param>
             <returns></returns>
         </member>
         <member name="M:FreeSql.ISelect0`2.Distinct">
@@ -2248,6 +2364,7 @@
             <typeparam name="T2"></typeparam>
             <typeparam name="T3"></typeparam>
             <typeparam name="T4"></typeparam>
+            <typeparam name="T5"></typeparam>
             <param name="exp">lambda表达式</param>
             <returns></returns>
         </member>
@@ -2331,6 +2448,15 @@
             <param name="navigateSelector">选择一个导航属性</param>
             <returns></returns>
         </member>
+        <member name="M:FreeSql.ISelect`1.IncludeIf``1(System.Boolean,System.Linq.Expressions.Expression{System.Func{`0,``0}})">
+            <summary>
+            贪婪加载导航属性，如果查询中已经使用了 a.Parent.Parent 类似表达式，则可以无需此操作
+            </summary>
+            <typeparam name="TNavigate"></typeparam>
+            <param name="condition">true 时生效</param>
+            <param name="navigateSelector">选择一个导航属性</param>
+            <returns></returns>
+        </member>
         <member name="M:FreeSql.ISelect`1.IncludeMany``1(System.Linq.Expressions.Expression{System.Func{`0,System.Collections.Generic.IEnumerable{``0}}},System.Action{FreeSql.ISelect{``0}})">
             <summary>
             贪婪加载集合的导航属性，其实是分两次查询，ToList 后进行了数据重装<para></para>
@@ -2345,11 +2471,26 @@
             <param name="then">即能 ThenInclude，还可以二次过滤（这个 EFCore 做不到？）</param>
             <returns></returns>
         </member>
+        <member name="M:FreeSql.ISelect`1.IncludeByPropertyName(System.String)">
+            <summary>
+            按属性名字符串进行 Include/IncludeMany 操作
+            </summary>
+            <param name="property"></param>
+            <returns></returns>
+        </member>
+        <member name="M:FreeSql.ISelect`1.IncludeByPropertyNameIf(System.Boolean,System.String)">
+            <summary>
+            按属性名字符串进行 Include/IncludeMany 操作
+            </summary>
+            <param name="condition">true 时生效</param>
+            <param name="property"></param>
+            <returns></returns>
+        </member>
         <member name="M:FreeSql.ISelect`1.WithSql(System.String,System.Object)">
             <summary>
             实现 select .. from ( select ... from t ) a 这样的功能<para></para>
             使用 AsTable 方法也可以达到效果<para></para>
-            示例：WithSql("select * from id=?id", new { id = 1 })<para></para>
+            示例：WithSql("select * from id=@id", new { id = 1 })<para></para>
             提示：parms 参数还可以传 Dictionary&lt;string, object&gt;
             </summary>
             <param name="sql">SQL语句</param>
@@ -2427,6 +2568,7 @@
             </summary>
             <typeparam name="TReturn">返回类型</typeparam>
             <param name="select">选择列</param>
+            <param name="fieldAlias"></param>
             <returns></returns>
         </member>
         <member name="M:FreeSql.ISelectGrouping`2.ToSql(System.String)">
@@ -2470,6 +2612,13 @@
             </summary>
             <param name="pageNumber">第几页</param>
             <param name="pageSize">每页多少</param>
+            <returns></returns>
+        </member>
+        <member name="M:FreeSql.ISelectGrouping`2.Page(FreeSql.Internal.Model.BasePagingInfo)">
+            <summary>
+            分页
+            </summary>
+            <param name="pagingInfo">分页信息</param>
             <returns></returns>
         </member>
         <member name="M:FreeSql.ISelectGrouping`2.Count">
@@ -2591,12 +2740,13 @@
             <param name="source">实体</param>
             <returns></returns>
         </member>
-        <member name="M:FreeSql.IUpdate`1.SetSource(System.Collections.Generic.IEnumerable{`0})">
+        <member name="M:FreeSql.IUpdate`1.SetSource(System.Collections.Generic.IEnumerable{`0},System.Linq.Expressions.Expression{System.Func{`0,System.Object}})">
             <summary>
             更新数据，设置更新的实体集合<para></para>
             注意：实体必须定义主键，并且最终会自动附加条件 where id in (source.Id)
             </summary>
             <param name="source">实体集合</param>
+            <param name="tempPrimarys">根据临时主键更新，a => a.Name | a => new{a.Name,a.Time} | a => new[]{"name","time"}</param>
             <returns></returns>
         </member>
         <member name="M:FreeSql.IUpdate`1.SetSourceIgnore(`0,System.Func{System.Object,System.Boolean})">
@@ -2683,7 +2833,7 @@
         </member>
         <member name="M:FreeSql.IUpdate`1.SetRaw(System.String,System.Object)">
             <summary>
-            设置值，自定义SQL语法，SetRaw("title = ?title", new { title = "newtitle" })<para></para>
+            设置值，自定义SQL语法，SetRaw("title = @title", new { title = "newtitle" })<para></para>
             提示：parms 参数还可以传 Dictionary&lt;string, object&gt;
             </summary>
             <param name="sql">sql语法</param>
@@ -2719,7 +2869,7 @@
         </member>
         <member name="M:FreeSql.IUpdate`1.Where(System.String,System.Object)">
             <summary>
-            原生sql语法条件，Where("id = ?id", new { id = 1 })<para></para>
+            原生sql语法条件，Where("id = @id", new { id = 1 })<para></para>
             提示：parms 参数还可以传 Dictionary&lt;string, object&gt;
             </summary>
             <param name="sql">sql语法条件</param>
@@ -2845,7 +2995,7 @@
         </member>
         <member name="M:FreeSql.IAdo.CommandFluent(System.String,System.Object)">
             <summary>
-            SQL 命令执行类，fsql.Ado.CommandFluent("select * from user where age > ?age", new { age = 25 })<para></para>
+            SQL 命令执行类，fsql.Ado.CommandFluent("select * from user where age > @age", new { age = 25 })<para></para>
             .WithConnection(connection)<para></para>
             .WithTransaction(transaction)<para></para>
             .WithParameter("age", 25)<para></para>
@@ -2878,9 +3028,10 @@
         </member>
         <member name="M:FreeSql.IAdo.ExecuteReader(System.Action{FreeSql.Internal.Model.FetchCallbackArgs{System.Data.Common.DbDataReader}},System.String,System.Object)">
             <summary>
-            查询，ExecuteReader(dr => {}, "select * from user where age > ?age", new { age = 25 })<para></para>
+            查询，ExecuteReader(dr => {}, "select * from user where age > @age", new { age = 25 })<para></para>
             提示：parms 参数还可以传 Dictionary&lt;string, object&gt;
             </summary>
+            <param name="fetchHandler"></param>
             <param name="cmdText"></param>
             <param name="parms"></param>
         </member>
@@ -2888,12 +3039,13 @@
             <summary>
             查询
             </summary>
+            <param name="cmdType"></param>
             <param name="cmdText"></param>
             <param name="cmdParms"></param>
         </member>
         <member name="M:FreeSql.IAdo.ExecuteArray(System.String,System.Object)">
             <summary>
-            查询，ExecuteArray("select * from user where age > ?age", new { age = 25 })<para></para>
+            查询，ExecuteArray("select * from user where age > @age", new { age = 25 })<para></para>
             提示：parms 参数还可以传 Dictionary&lt;string, object&gt;
             </summary>
             <param name="cmdText"></param>
@@ -2904,12 +3056,13 @@
             <summary>
             查询
             </summary>
+            <param name="cmdType"></param>
             <param name="cmdText"></param>
             <param name="cmdParms"></param>
         </member>
         <member name="M:FreeSql.IAdo.ExecuteDataSet(System.String,System.Object)">
             <summary>
-            查询，ExecuteDataSet("select * from user where age > ?age; select 2", new { age = 25 })<para></para>
+            查询，ExecuteDataSet("select * from user where age > @age; select 2", new { age = 25 })<para></para>
             提示：parms 参数还可以传 Dictionary&lt;string, object&gt;
             </summary>
             <param name="cmdText"></param>
@@ -2920,12 +3073,13 @@
             <summary>
             查询
             </summary>
+            <param name="cmdType"></param>
             <param name="cmdText"></param>
             <param name="cmdParms"></param>
         </member>
         <member name="M:FreeSql.IAdo.ExecuteDataTable(System.String,System.Object)">
             <summary>
-            查询，ExecuteDataTable("select * from user where age > ?age", new { age = 25 })<para></para>
+            查询，ExecuteDataTable("select * from user where age > @age", new { age = 25 })<para></para>
             提示：parms 参数还可以传 Dictionary&lt;string, object&gt;
             </summary>
             <param name="cmdText"></param>
@@ -2942,7 +3096,7 @@
         </member>
         <member name="M:FreeSql.IAdo.ExecuteNonQuery(System.String,System.Object)">
             <summary>
-            在【主库】执行，ExecuteNonQuery("delete from user where age > ?age", new { age = 25 })<para></para>
+            在【主库】执行，ExecuteNonQuery("delete from user where age > @age", new { age = 25 })<para></para>
             提示：parms 参数还可以传 Dictionary&lt;string, object&gt;
             </summary>
             <param name="cmdText"></param>
@@ -2959,7 +3113,7 @@
         </member>
         <member name="M:FreeSql.IAdo.ExecuteScalar(System.String,System.Object)">
             <summary>
-            在【主库】执行，ExecuteScalar("select 1 from user where age > ?age", new { age = 25 })<para></para>
+            在【主库】执行，ExecuteScalar("select 1 from user where age > @age", new { age = 25 })<para></para>
             提示：parms 参数还可以传 Dictionary&lt;string, object&gt;
             </summary>
             <param name="cmdText"></param>
@@ -2968,7 +3122,7 @@
         </member>
         <member name="M:FreeSql.IAdo.Query``1(System.Data.CommandType,System.String,System.Data.Common.DbParameter[])">
             <summary>
-            执行SQL返回对象集合，Query&lt;User&gt;("select * from user where age > ?age", new SqlParameter { ParameterName = "age", Value = 25 })
+            执行SQL返回对象集合，Query&lt;User&gt;("select * from user where age > @age", new SqlParameter { ParameterName = "age", Value = 25 })
             </summary>
             <typeparam name="T"></typeparam>
             <param name="cmdType"></param>
@@ -2978,7 +3132,7 @@
         </member>
         <member name="M:FreeSql.IAdo.Query``1(System.String,System.Object)">
             <summary>
-            执行SQL返回对象集合，Query&lt;User&gt;("select * from user where age > ?age", new { age = 25 })<para></para>
+            执行SQL返回对象集合，Query&lt;User&gt;("select * from user where age > @age", new { age = 25 })<para></para>
             提示：parms 参数还可以传 Dictionary&lt;string, object&gt;
             </summary>
             <typeparam name="T"></typeparam>
@@ -2988,9 +3142,10 @@
         </member>
         <member name="M:FreeSql.IAdo.Query``2(System.Data.CommandType,System.String,System.Data.Common.DbParameter[])">
             <summary>
-            执行SQL返回对象集合，Query&lt;User&gt;("select * from user where age > ?age; select * from address", new SqlParameter { ParameterName = "age", Value = 25 })
+            执行SQL返回对象集合，Query&lt;User&gt;("select * from user where age > @age; select * from address", new SqlParameter { ParameterName = "age", Value = 25 })
             </summary>
             <typeparam name="T1"></typeparam>
+            <typeparam name="T2"></typeparam>
             <param name="cmdType"></param>
             <param name="cmdText"></param>
             <param name="cmdParms"></param>
@@ -2998,24 +3153,26 @@
         </member>
         <member name="M:FreeSql.IAdo.Query``2(System.String,System.Object)">
             <summary>
-            执行SQL返回对象集合，Query&lt;User&gt;("select * from user where age > ?age; select * from address", new { age = 25 })<para></para>
+            执行SQL返回对象集合，Query&lt;User&gt;("select * from user where age > @age; select * from address", new { age = 25 })<para></para>
             提示：parms 参数还可以传 Dictionary&lt;string, object&gt;
             </summary>
             <typeparam name="T1"></typeparam>
+            <typeparam name="T2"></typeparam>
             <param name="cmdText"></param>
             <param name="parms"></param>
             <returns></returns>
         </member>
-        <member name="M:FreeSql.IAdo.ExecuteConnectTestAsync(System.Int32)">
+        <member name="M:FreeSql.IAdo.ExecuteConnectTestAsync(System.Int32,System.Threading.CancellationToken)">
             <summary>
             测试数据库是否连接正确，本方法执行如下命令：<para></para>
             MySql/SqlServer/PostgreSQL/达梦/人大金仓/神通: SELECT 1<para></para>
             Oracle: SELECT 1 FROM dual<para></para>
             </summary>
             <param name="commandTimeout">命令超时设置(秒)</param>
+            <param name="cancellationToken"></param>
             <returns>true: 成功, false: 失败</returns>
         </member>
-        <member name="M:FreeSql.IAdo.ExecuteReaderAsync(System.Func{FreeSql.Internal.Model.FetchCallbackArgs{System.Data.Common.DbDataReader},System.Threading.Tasks.Task},System.Data.CommandType,System.String,System.Data.Common.DbParameter[])">
+        <member name="M:FreeSql.IAdo.ExecuteReaderAsync(System.Func{FreeSql.Internal.Model.FetchCallbackArgs{System.Data.Common.DbDataReader},System.Threading.Tasks.Task},System.Data.CommandType,System.String,System.Data.Common.DbParameter[],System.Threading.CancellationToken)">
             <summary>
             查询，若使用读写分离，查询【从库】条件cmdText.StartsWith("SELECT ")，否则查询【主库】
             </summary>
@@ -3023,135 +3180,157 @@
             <param name="cmdType"></param>
             <param name="cmdText"></param>
             <param name="cmdParms"></param>
+            <param name="cancellationToken"></param>
         </member>
-        <member name="M:FreeSql.IAdo.ExecuteReaderAsync(System.Func{FreeSql.Internal.Model.FetchCallbackArgs{System.Data.Common.DbDataReader},System.Threading.Tasks.Task},System.String,System.Object)">
+        <member name="M:FreeSql.IAdo.ExecuteReaderAsync(System.Func{FreeSql.Internal.Model.FetchCallbackArgs{System.Data.Common.DbDataReader},System.Threading.Tasks.Task},System.String,System.Object,System.Threading.CancellationToken)">
             <summary>
-            查询，ExecuteReaderAsync(dr => {}, "select * from user where age > ?age", new { age = 25 })<para></para>
+            查询，ExecuteReaderAsync(dr => {}, "select * from user where age > @age", new { age = 25 })<para></para>
             提示：parms 参数还可以传 Dictionary&lt;string, object&gt;
             </summary>
+            <param name="readerHander"></param>
             <param name="cmdText"></param>
             <param name="parms"></param>
+            <param name="cancellationToken"></param>
         </member>
-        <member name="M:FreeSql.IAdo.ExecuteArrayAsync(System.Data.CommandType,System.String,System.Data.Common.DbParameter[])">
+        <member name="M:FreeSql.IAdo.ExecuteArrayAsync(System.Data.CommandType,System.String,System.Data.Common.DbParameter[],System.Threading.CancellationToken)">
             <summary>
             查询
             </summary>
+            <param name="cmdType"></param>
             <param name="cmdText"></param>
             <param name="cmdParms"></param>
+            <param name="cancellationToken"></param>
         </member>
-        <member name="M:FreeSql.IAdo.ExecuteArrayAsync(System.String,System.Object)">
+        <member name="M:FreeSql.IAdo.ExecuteArrayAsync(System.String,System.Object,System.Threading.CancellationToken)">
             <summary>
-            查询，ExecuteArrayAsync("select * from user where age > ?age", new { age = 25 })<para></para>
+            查询，ExecuteArrayAsync("select * from user where age > @age", new { age = 25 })<para></para>
             提示：parms 参数还可以传 Dictionary&lt;string, object&gt;
             </summary>
             <param name="cmdText"></param>
             <param name="parms"></param>
+            <param name="cancellationToken"></param>
             <returns></returns>
         </member>
-        <member name="M:FreeSql.IAdo.ExecuteDataSetAsync(System.Data.CommandType,System.String,System.Data.Common.DbParameter[])">
+        <member name="M:FreeSql.IAdo.ExecuteDataSetAsync(System.Data.CommandType,System.String,System.Data.Common.DbParameter[],System.Threading.CancellationToken)">
             <summary>
             查询
             </summary>
+            <param name="cmdType"></param>
             <param name="cmdText"></param>
             <param name="cmdParms"></param>
+            <param name="cancellationToken"></param>
         </member>
-        <member name="M:FreeSql.IAdo.ExecuteDataSetAsync(System.String,System.Object)">
+        <member name="M:FreeSql.IAdo.ExecuteDataSetAsync(System.String,System.Object,System.Threading.CancellationToken)">
             <summary>
-            查询，ExecuteDataSetAsync("select * from user where age > ?age; select 2", new { age = 25 })<para></para>
+            查询，ExecuteDataSetAsync("select * from user where age > @age; select 2", new { age = 25 })<para></para>
             提示：parms 参数还可以传 Dictionary&lt;string, object&gt;
             </summary>
             <param name="cmdText"></param>
             <param name="parms"></param>
+            <param name="cancellationToken"></param>
             <returns></returns>
         </member>
-        <member name="M:FreeSql.IAdo.ExecuteDataTableAsync(System.Data.CommandType,System.String,System.Data.Common.DbParameter[])">
+        <member name="M:FreeSql.IAdo.ExecuteDataTableAsync(System.Data.CommandType,System.String,System.Data.Common.DbParameter[],System.Threading.CancellationToken)">
             <summary>
             查询
             </summary>
+            <param name="cmdType"></param>
             <param name="cmdText"></param>
             <param name="cmdParms"></param>
+            <param name="cancellationToken"></param>
         </member>
-        <member name="M:FreeSql.IAdo.ExecuteDataTableAsync(System.String,System.Object)">
+        <member name="M:FreeSql.IAdo.ExecuteDataTableAsync(System.String,System.Object,System.Threading.CancellationToken)">
             <summary>
-            查询，ExecuteDataTableAsync("select * from user where age > ?age", new { age = 25 })<para></para>
+            查询，ExecuteDataTableAsync("select * from user where age > @age", new { age = 25 })<para></para>
             提示：parms 参数还可以传 Dictionary&lt;string, object&gt;
             </summary>
             <param name="cmdText"></param>
             <param name="parms"></param>
+            <param name="cancellationToken"></param>
             <returns></returns>
         </member>
-        <member name="M:FreeSql.IAdo.ExecuteNonQueryAsync(System.Data.CommandType,System.String,System.Data.Common.DbParameter[])">
+        <member name="M:FreeSql.IAdo.ExecuteNonQueryAsync(System.Data.CommandType,System.String,System.Data.Common.DbParameter[],System.Threading.CancellationToken)">
             <summary>
             在【主库】执行
             </summary>
             <param name="cmdType"></param>
             <param name="cmdText"></param>
             <param name="cmdParms"></param>
+            <param name="cancellationToken"></param>
         </member>
-        <member name="M:FreeSql.IAdo.ExecuteNonQueryAsync(System.String,System.Object)">
+        <member name="M:FreeSql.IAdo.ExecuteNonQueryAsync(System.String,System.Object,System.Threading.CancellationToken)">
             <summary>
-            在【主库】执行，ExecuteNonQueryAsync("delete from user where age > ?age", new { age = 25 })<para></para>
+            在【主库】执行，ExecuteNonQueryAsync("delete from user where age > @age", new { age = 25 })<para></para>
             提示：parms 参数还可以传 Dictionary&lt;string, object&gt;
             </summary>
             <param name="cmdText"></param>
             <param name="parms"></param>
+            <param name="cancellationToken"></param>
             <returns></returns>
         </member>
-        <member name="M:FreeSql.IAdo.ExecuteScalarAsync(System.Data.CommandType,System.String,System.Data.Common.DbParameter[])">
+        <member name="M:FreeSql.IAdo.ExecuteScalarAsync(System.Data.CommandType,System.String,System.Data.Common.DbParameter[],System.Threading.CancellationToken)">
             <summary>
             在【主库】执行
             </summary>
             <param name="cmdType"></param>
             <param name="cmdText"></param>
             <param name="cmdParms"></param>
+            <param name="cancellationToken"></param>
         </member>
-        <member name="M:FreeSql.IAdo.ExecuteScalarAsync(System.String,System.Object)">
+        <member name="M:FreeSql.IAdo.ExecuteScalarAsync(System.String,System.Object,System.Threading.CancellationToken)">
             <summary>
-            在【主库】执行，ExecuteScalarAsync("select 1 from user where age > ?age", new { age = 25 })<para></para>
+            在【主库】执行，ExecuteScalarAsync("select 1 from user where age > @age", new { age = 25 })<para></para>
             提示：parms 参数还可以传 Dictionary&lt;string, object&gt;
             </summary>
             <param name="cmdText"></param>
             <param name="parms"></param>
+            <param name="cancellationToken"></param>
             <returns></returns>
         </member>
-        <member name="M:FreeSql.IAdo.QueryAsync``1(System.Data.CommandType,System.String,System.Data.Common.DbParameter[])">
+        <member name="M:FreeSql.IAdo.QueryAsync``1(System.Data.CommandType,System.String,System.Data.Common.DbParameter[],System.Threading.CancellationToken)">
             <summary>
-            执行SQL返回对象集合，QueryAsync&lt;User&gt;("select * from user where age > ?age", new SqlParameter { ParameterName = "age", Value = 25 })
+            执行SQL返回对象集合，QueryAsync&lt;User&gt;("select * from user where age > @age", new SqlParameter { ParameterName = "age", Value = 25 })
             </summary>
             <typeparam name="T"></typeparam>
             <param name="cmdType"></param>
             <param name="cmdText"></param>
             <param name="cmdParms"></param>
+            <param name="cancellationToken"></param>
             <returns></returns>
         </member>
-        <member name="M:FreeSql.IAdo.QueryAsync``1(System.String,System.Object)">
+        <member name="M:FreeSql.IAdo.QueryAsync``1(System.String,System.Object,System.Threading.CancellationToken)">
             <summary>
-            执行SQL返回对象集合，QueryAsync&lt;User&gt;("select * from user where age > ?age", new { age = 25 })<para></para>
+            执行SQL返回对象集合，QueryAsync&lt;User&gt;("select * from user where age > @age", new { age = 25 })<para></para>
             提示：parms 参数还可以传 Dictionary&lt;string, object&gt;
             </summary>
             <typeparam name="T"></typeparam>
             <param name="cmdText"></param>
             <param name="parms"></param>
+            <param name="cancellationToken"></param>
             <returns></returns>
         </member>
-        <member name="M:FreeSql.IAdo.QueryAsync``2(System.Data.CommandType,System.String,System.Data.Common.DbParameter[])">
+        <member name="M:FreeSql.IAdo.QueryAsync``2(System.Data.CommandType,System.String,System.Data.Common.DbParameter[],System.Threading.CancellationToken)">
             <summary>
-            执行SQL返回对象集合，Query&lt;User&gt;("select * from user where age > ?age; select * from address", new SqlParameter { ParameterName = "age", Value = 25 })
+            执行SQL返回对象集合，Query&lt;User&gt;("select * from user where age > @age; select * from address", new SqlParameter { ParameterName = "age", Value = 25 })
             </summary>
             <typeparam name="T1"></typeparam>
+            <typeparam name="T2"></typeparam>
             <param name="cmdType"></param>
             <param name="cmdText"></param>
             <param name="cmdParms"></param>
+            <param name="cancellationToken"></param>
             <returns></returns>
         </member>
-        <member name="M:FreeSql.IAdo.QueryAsync``2(System.String,System.Object)">
+        <member name="M:FreeSql.IAdo.QueryAsync``2(System.String,System.Object,System.Threading.CancellationToken)">
             <summary>
-            执行SQL返回对象集合，Query&lt;User, Address&gt;("select * from user where age > ?age; select * from address", new { age = 25 })<para></para>
+            执行SQL返回对象集合，Query&lt;User, Address&gt;("select * from user where age > @age; select * from address", new { age = 25 })<para></para>
             提示：parms 参数还可以传 Dictionary&lt;string, object&gt;
             </summary>
             <typeparam name="T1"></typeparam>
+            <typeparam name="T2"></typeparam>
             <param name="cmdText"></param>
             <param name="parms"></param>
+            <param name="cancellationToken"></param>
             <returns></returns>
         </member>
         <member name="E:FreeSql.IAop.ParseExpression">
@@ -3294,6 +3473,11 @@
             参数化命令
             </summary>
         </member>
+        <member name="P:FreeSql.Aop.CurdBeforeEventArgs.States">
+            <summary>
+            状态数据，可与 CurdAfter 共享
+            </summary>
+        </member>
         <member name="P:FreeSql.Aop.CurdAfterEventArgs.Exception">
             <summary>
             发生的错误
@@ -3322,6 +3506,11 @@
         <member name="P:FreeSql.Aop.SyncStructureBeforeEventArgs.EntityTypes">
             <summary>
             实体类型
+            </summary>
+        </member>
+        <member name="P:FreeSql.Aop.SyncStructureBeforeEventArgs.States">
+            <summary>
+            状态数据，可与 SyncStructureAfter 共享
             </summary>
         </member>
         <member name="P:FreeSql.Aop.SyncStructureAfterEventArgs.Sql">
@@ -3384,6 +3573,11 @@
             标识符，可将 CommandBefore 与 CommandAfter 进行匹配
             </summary>
         </member>
+        <member name="P:FreeSql.Aop.CommandBeforeEventArgs.States">
+            <summary>
+            状态数据，可与 CommandAfter 共享
+            </summary>
+        </member>
         <member name="P:FreeSql.Aop.CommandAfterEventArgs.Exception">
             <summary>
             发生的错误
@@ -3407,6 +3601,11 @@
         <member name="P:FreeSql.Aop.TraceBeforeEventArgs.Identifier">
             <summary>
             标识符，可将 TraceBeforeEventArgs 与 TraceAfterEventArgs 进行匹配
+            </summary>
+        </member>
+        <member name="P:FreeSql.Aop.TraceBeforeEventArgs.States">
+            <summary>
+            状态数据，可与 TraceAfter 共享
             </summary>
         </member>
         <member name="P:FreeSql.Aop.TraceAfterEventArgs.Remark">
@@ -3644,6 +3843,11 @@
             <param name="database"></param>
             <returns></returns>
         </member>
+        <member name="F:FreeSql.Internal.BaseDiyMemberExpression._lambdaParameter">
+            <summary>
+            临时 LambdaExpression.Parameter
+            </summary>
+        </member>
         <member name="M:FreeSql.Internal.CommonProvider.InsertOrUpdateProvider`1.SplitSourceByIdentityValueIsNull(System.Collections.Generic.List{`0})">
             <summary>
             如果实体类有自增属性，分成两个 List，有值的Item1 merge，无值的Item2 insert
@@ -3785,6 +3989,26 @@
             </summary>
             <param name="commandTimeout"></param>
             <returns></returns>
+        </member>
+        <member name="T:FreeSql.Internal.Model.BasePagingInfo">
+            <summary>
+            分页信息
+            </summary>
+        </member>
+        <member name="P:FreeSql.Internal.Model.BasePagingInfo.PageNumber">
+            <summary>
+            第几页，从1开始
+            </summary>
+        </member>
+        <member name="P:FreeSql.Internal.Model.BasePagingInfo.PageSize">
+            <summary>
+            每页多少
+            </summary>
+        </member>
+        <member name="P:FreeSql.Internal.Model.BasePagingInfo.Count">
+            <summary>
+            查询的记录数量
+            </summary>
         </member>
         <member name="P:FreeSql.Internal.Model.BatchProgressStatus`1.Data">
             <summary>
@@ -4161,7 +4385,7 @@
             </summary>
             <param name="policy">策略</param>
         </member>
-        <member name="M:FreeSql.Internal.ObjectPool.ObjectPool`1.getFree(System.Boolean)">
+        <member name="M:FreeSql.Internal.ObjectPool.ObjectPool`1.GetFree(System.Boolean)">
             <summary>
             获取可用资源，或创建资源
             </summary>
@@ -4273,6 +4497,7 @@
             获取 Type 的原始 c# 文本表示
             </summary>
             <param name="type"></param>
+            <param name="isNameSpace"></param>
             <returns></returns>
         </member>
         <member name="M:FreeSqlGlobalExtensions.Distance(System.Drawing.Point,System.Drawing.Point)">
@@ -4303,7 +4528,10 @@
             示例：new List&lt;Song&gt;(new[] { song1, song2, song3 }).IncludeMany(g.sqlite, a => a.Tags);<para></para>
             文档：https://github.com/2881099/FreeSql/wiki/%e8%b4%aa%e5%a9%aa%e5%8a%a0%e8%bd%bd#%E5%AF%BC%E8%88%AA%E5%B1%9E%E6%80%A7-onetomanymanytomany
             </summary>
+            <typeparam name="T1"></typeparam>
             <typeparam name="TNavigate"></typeparam>
+            <param name="list"></param>
+            <param name="orm"></param>
             <param name="navigateSelector">选择一个集合的导航属性，如： .IncludeMany(a => a.Tags)<para></para>
             可以 .Where 设置临时的关系映射，如： .IncludeMany(a => a.Tags.Where(tag => tag.TypeId == a.Id))<para></para>
             可以 .Take(5) 每个子集合只取5条，如： .IncludeMany(a => a.Tags.Take(5))<para></para>
@@ -4324,8 +4552,9 @@
         <member name="M:FreeSqlGlobalExtensions.AsTreeCte``1(FreeSql.ISelect{``0},System.Linq.Expressions.Expression{System.Func{``0,System.String}},System.Boolean,System.String,System.Int32)">
             <summary>
             使用递归 CTE 查询树型的所有子记录，或者所有父记录。<para></para>
-            通过测试的数据库：MySql8.0、SqlServer、PostgreSQL、Oracle、Sqlite、Firebird、达梦、人大金仓<para></para>
-            返回隐藏字段：.ToList(a =&gt; new { item = a, level = "a.cte_level", path = "a.cte_path" })
+            通过测试的数据库：MySql8.0、SqlServer、PostgreSQL、Oracle、Sqlite、Firebird、达梦、人大金仓、翰高<para></para>
+            返回隐藏字段：.ToList(a =&gt; new { item = a, level = "a.cte_level", path = "a.cte_path" })<para></para>
+            * v2.0.0 兼容 MySql5.6 向上或向下查询，但不支持 pathSelector/pathSeparator 详细：https://github.com/dotnetcore/FreeSql/issues/536
             </summary>
             <typeparam name="T1"></typeparam>
             <param name="that"></param>
@@ -4333,6 +4562,14 @@
             <param name="pathSelector">路径内容选择</param>
             <param name="pathSeparator">连接路径内容</param>
             <param name="level">递归层级</param>
+            <returns></returns>
+        </member>
+        <member name="M:FreeSqlGlobalExtensions.OrderByRandom``2(FreeSql.ISelect0{``0,``1})">
+            <summary>
+            随机排序<para></para>
+            支持：MySql/SqlServer/PostgreSQL/Oracle/Sqlite/Firebird/达梦/金仓/神通<para></para>
+            不支持：MsAcess
+            </summary>
             <returns></returns>
         </member>
         <member name="M:System.Linq.Expressions.LambadaExpressionExtensions.And``1(System.Linq.Expressions.Expression{System.Func{``0,System.Boolean}},System.Linq.Expressions.Expression{System.Func{``0,System.Boolean}})">

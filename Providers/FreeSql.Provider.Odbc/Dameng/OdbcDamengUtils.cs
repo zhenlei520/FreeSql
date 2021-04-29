@@ -96,10 +96,10 @@ namespace FreeSql.Odbc.Dameng
         public override string Now => "systimestamp";
         public override string NowUtc => "getutcdate";
 
-        public override string QuoteWriteParamter(Type type, string paramterName) => paramterName;
-        public override string QuoteReadColumn(Type type, Type mapType, string columnName) => columnName;
+        public override string QuoteWriteParamterAdapter(Type type, string paramterName) => paramterName;
+        protected override string QuoteReadColumnAdapter(Type type, Type mapType, string columnName) => columnName;
 
-        public override string GetNoneParamaterSqlValue(List<DbParameter> specialParams, string specialParamFlag, Type type, object value)
+        public override string GetNoneParamaterSqlValue(List<DbParameter> specialParams, string specialParamFlag, ColumnInfo col, Type type, object value)
         {
             if (value == null) return "NULL";
             if (type.IsNumberType()) return string.Format(CultureInfo.InvariantCulture, "{0}", value);

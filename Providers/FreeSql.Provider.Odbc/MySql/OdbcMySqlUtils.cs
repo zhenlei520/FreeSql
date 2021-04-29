@@ -66,7 +66,7 @@ namespace FreeSql.Odbc.MySql
         public override string Now => "now()";
         public override string NowUtc => "utc_timestamp()";
 
-        public override string QuoteWriteParamter(Type type, string paramterName)
+        public override string QuoteWriteParamterAdapter(Type type, string paramterName)
         {
             switch (type.FullName)
             {
@@ -79,7 +79,7 @@ namespace FreeSql.Odbc.MySql
             }
             return paramterName;
         }
-        public override string QuoteReadColumn(Type type, Type mapType, string columnName)
+        protected override string QuoteReadColumnAdapter(Type type, Type mapType, string columnName)
         {
             switch (mapType.FullName)
             {
@@ -93,7 +93,7 @@ namespace FreeSql.Odbc.MySql
             return columnName;
         }
 
-        public override string GetNoneParamaterSqlValue(List<DbParameter> specialParams, string specialParamFlag, Type type, object value)
+        public override string GetNoneParamaterSqlValue(List<DbParameter> specialParams, string specialParamFlag, ColumnInfo col, Type type, object value)
         {
             if (value == null) return "NULL";
             if (type.IsNumberType()) return string.Format(CultureInfo.InvariantCulture, "{0}", value);

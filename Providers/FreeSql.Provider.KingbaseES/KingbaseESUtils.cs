@@ -121,10 +121,10 @@ namespace FreeSql.KingbaseES
         public override string Now => "current_timestamp";
         public override string NowUtc => "(current_timestamp at time zone 'UTC')";
 
-        public override string QuoteWriteParamter(Type type, string paramterName) => paramterName;
-        public override string QuoteReadColumn(Type type, Type mapType, string columnName) => columnName;
+        public override string QuoteWriteParamterAdapter(Type type, string paramterName) => paramterName;
+        protected override string QuoteReadColumnAdapter(Type type, Type mapType, string columnName) => columnName;
 
-        public override string GetNoneParamaterSqlValue(List<DbParameter> specialParams, string specialParamFlag, Type type, object value)
+        public override string GetNoneParamaterSqlValue(List<DbParameter> specialParams, string specialParamFlag, ColumnInfo col, Type type, object value)
         {
             if (value == null) return "NULL";
             if (type.IsNumberType()) return string.Format(CultureInfo.InvariantCulture, "{0}", value);
@@ -146,7 +146,7 @@ namespace FreeSql.KingbaseES
                 {
                     var item = valueArr.GetValue(a);
                     if (a > 0) sb.Append(",");
-                    sb.Append(GetNoneParamaterSqlValue(specialParams, specialParamFlag, eleType, item));
+                    sb.Append(GetNoneParamaterSqlValue(specialParams, specialParamFlag, col, eleType, item));
                 }
                 sb.Append("]");
                 var dbinfo = _orm.CodeFirst.GetDbInfo(type);

@@ -12,6 +12,73 @@ namespace FreeSql.Tests.MySqlConnector
     public class MySqlCodeFirstTest
     {
         [Fact]
+        public void InsertUpdateParameter()
+        {
+            var fsql = g.mysql;
+            fsql.CodeFirst.SyncStructure<ts_iupstr_bak>();
+            var item = new ts_iupstr { id = Guid.NewGuid(), title = string.Join(",", Enumerable.Range(0, 2000).Select(a => "我是中国人")) };
+            Assert.Equal(1, fsql.Insert(item).ExecuteAffrows());
+            var find = fsql.Select<ts_iupstr>().Where(a => a.id == item.id).First();
+            Assert.NotNull(find);
+            Assert.Equal(find.id, item.id);
+            Assert.Equal(find.title, item.title);
+        }
+        [Table(Name = "ts_iupstr_bak", DisableSyncStructure = true)]
+        class ts_iupstr
+        {
+            public Guid id { get; set; }
+            public string title { get; set; }
+        }
+        class ts_iupstr_bak
+        {
+            public Guid id { get; set; }
+            [Column(StringLength = -1)]
+            public string title { get; set; }
+        }
+
+        [Fact]
+        public void Timestamp01()
+        {
+            var fsql = g.mysql;
+            var items = fsql.Select<timestamp01>().ToList();
+            fsql.Delete<timestamp01>().Where("1=1").ExecuteAffrows();
+
+            var item = new timestamp01 { time = DateTime.Now };
+            fsql.Insert(item).ExecuteAffrows();
+            var newitem = fsql.Select<timestamp01>().WhereDynamic(item).First();
+            Assert.Equal(item.id, newitem.id);
+            Assert.Equal(item.time.ToString("yyyy-MM-dd HH:mm"), newitem.time.ToString("yyyy-MM-dd HH:mm"));
+
+            item = new timestamp01 { time = DateTime.Now };
+            fsql.Insert(item).NoneParameter().ExecuteAffrows();
+            newitem = fsql.Select<timestamp01>().WhereDynamic(item).First();
+            Assert.Equal(item.time.ToString("yyyy-MM-dd HH:mm"), newitem.time.ToString("yyyy-MM-dd HH:mm"));
+
+
+            fsql.Delete<timestamp02>().Where("1=1").ExecuteAffrows();
+            var user01 = new timestamp02();
+            fsql.Insert(user01).ExecuteAffrows();
+            var user01s = fsql.Select<timestamp02>().Count(out var count).Page(0, 100).ToList();
+        }
+        class timestamp01
+        {
+            public Guid id { get; set; }
+            [Column(DbType = "timestamp")]
+            public DateTime time { get; set; }
+        }
+        public class timestamp02
+        {
+            public long UID { get; set; } = 123;
+            public string Alias { get; set; }
+            public bool Fixed { get; set; }
+            public string Avatar { get; set; }
+            public DateTime Created { get; set; } //= DateTime.Now;
+            public long CreatedBy { get; set; }
+            public DateTime Modified { get; set; }// = DateTime.Now;
+            public long ModifiedBy { get; set; }
+        }
+
+        [Fact]
         public void DateTime_1()
         {
             var item1 = new TS_DATETIME01 { CreateTime = DateTime.Now };

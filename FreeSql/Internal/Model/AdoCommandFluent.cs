@@ -5,6 +5,7 @@ using System.Data;
 using System.Data.Common;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace FreeSql.Internal.Model
@@ -59,6 +60,7 @@ namespace FreeSql.Internal.Model
         public AdoCommandFluent WithParameter(string parameterName, object value, Action<DbParameter> modify = null)
         {
             var param = this.Ado.GetDbParamtersByObject(new Dictionary<string, object> { [parameterName] = value }).FirstOrDefault();
+            if (CmdType == System.Data.CommandType.StoredProcedure) param.ParameterName = parameterName; //#739
             modify?.Invoke(param);
             this.CmdParameters.Add(param);
             return this;
@@ -91,6 +93,7 @@ namespace FreeSql.Internal.Model
         public DataSet ExecuteDataSet() => this.Ado.ExecuteDataSet(this.Connection, this.Transaction, this.CmdType, this.CmdText, this.CmdTimeout, this.CmdParameters.ToArray());
         public object[][] ExecuteArray() => this.Ado.ExecuteArray(this.Connection, this.Transaction, this.CmdType, this.CmdText, this.CmdTimeout, this.CmdParameters.ToArray());
         public List<T> Query<T>() => this.Ado.Query<T>(this.Connection, this.Transaction, this.CmdType, this.CmdText, this.CmdTimeout, this.CmdParameters.ToArray());
+        public T QuerySingle<T>() => Query<T>().FirstOrDefault();
         public NativeTuple<List<T1>, List<T2>> Query<T1, T2>() => this.Ado.Query<T1, T2>(this.Connection, this.Transaction, this.CmdType, this.CmdText, this.CmdTimeout, this.CmdParameters.ToArray());
         public NativeTuple<List<T1>, List<T2>, List<T3>> Query<T1, T2, T3>() => this.Ado.Query<T1, T2, T3>(this.Connection, this.Transaction, this.CmdType, this.CmdText, this.CmdTimeout, this.CmdParameters.ToArray());
         public NativeTuple<List<T1>, List<T2>, List<T3>, List<T4>> Query<T1, T2, T3, T4>() => this.Ado.Query<T1, T2, T3, T4>(this.Connection, this.Transaction, this.CmdType, this.CmdText, this.CmdTimeout, this.CmdParameters.ToArray());
@@ -98,16 +101,17 @@ namespace FreeSql.Internal.Model
 
 #if net40
 #else
-        public Task<int> ExecuteNonQueryAsync() => this.Ado.ExecuteNonQueryAsync(this.Connection, this.Transaction, this.CmdType, this.CmdText, this.CmdTimeout, this.CmdParameters.ToArray());
-        public Task<object> ExecuteScalarAsync() => this.Ado.ExecuteScalarAsync(this.Connection, this.Transaction, this.CmdType, this.CmdText, this.CmdTimeout, this.CmdParameters.ToArray());
-        public Task<DataTable> ExecuteDataTableAsync() => this.Ado.ExecuteDataTableAsync(this.Connection, this.Transaction, this.CmdType, this.CmdText, this.CmdTimeout, this.CmdParameters.ToArray());
-        public Task<DataSet> ExecuteDataSetAsync() => this.Ado.ExecuteDataSetAsync(this.Connection, this.Transaction, this.CmdType, this.CmdText, this.CmdTimeout, this.CmdParameters.ToArray());
-        public Task<object[][]> ExecuteArrayAsync() => this.Ado.ExecuteArrayAsync(this.Connection, this.Transaction, this.CmdType, this.CmdText, this.CmdTimeout, this.CmdParameters.ToArray());
-        public Task<List<T>> QueryAsync<T>() => this.Ado.QueryAsync<T>(this.Connection, this.Transaction, this.CmdType, this.CmdText, this.CmdTimeout, this.CmdParameters.ToArray());
-        public Task<NativeTuple<List<T1>, List<T2>>> QueryAsync<T1, T2>() => this.Ado.QueryAsync<T1, T2>(this.Connection, this.Transaction, this.CmdType, this.CmdText, this.CmdTimeout, this.CmdParameters.ToArray());
-        public Task<NativeTuple<List<T1>, List<T2>, List<T3>>> QueryAsync<T1, T2, T3>() => this.Ado.QueryAsync<T1, T2, T3>(this.Connection, this.Transaction, this.CmdType, this.CmdText, this.CmdTimeout, this.CmdParameters.ToArray());
-        public Task<NativeTuple<List<T1>, List<T2>, List<T3>, List<T4>>> QueryAsync<T1, T2, T3, T4>() => this.Ado.QueryAsync<T1, T2, T3, T4>(this.Connection, this.Transaction, this.CmdType, this.CmdText, this.CmdTimeout, this.CmdParameters.ToArray());
-        public Task<NativeTuple<List<T1>, List<T2>, List<T3>, List<T4>, List<T5>>> QueryAsync<T1, T2, T3, T4, T5>() => this.Ado.QueryAsync<T1, T2, T3, T4, T5>(this.Connection, this.Transaction, this.CmdType, this.CmdText, this.CmdTimeout, this.CmdParameters.ToArray());
+        public Task<int> ExecuteNonQueryAsync(CancellationToken cancellationToken = default) => this.Ado.ExecuteNonQueryAsync(this.Connection, this.Transaction, this.CmdType, this.CmdText, this.CmdTimeout, this.CmdParameters.ToArray(), cancellationToken);
+        public Task<object> ExecuteScalarAsync(CancellationToken cancellationToken = default) => this.Ado.ExecuteScalarAsync(this.Connection, this.Transaction, this.CmdType, this.CmdText, this.CmdTimeout, this.CmdParameters.ToArray(), cancellationToken);
+        public Task<DataTable> ExecuteDataTableAsync(CancellationToken cancellationToken = default) => this.Ado.ExecuteDataTableAsync(this.Connection, this.Transaction, this.CmdType, this.CmdText, this.CmdTimeout, this.CmdParameters.ToArray(), cancellationToken);
+        public Task<DataSet> ExecuteDataSetAsync(CancellationToken cancellationToken = default) => this.Ado.ExecuteDataSetAsync(this.Connection, this.Transaction, this.CmdType, this.CmdText, this.CmdTimeout, this.CmdParameters.ToArray(), cancellationToken);
+        public Task<object[][]> ExecuteArrayAsync(CancellationToken cancellationToken = default) => this.Ado.ExecuteArrayAsync(this.Connection, this.Transaction, this.CmdType, this.CmdText, this.CmdTimeout, this.CmdParameters.ToArray(), cancellationToken);
+        public Task<List<T>> QueryAsync<T>(CancellationToken cancellationToken = default) => this.Ado.QueryAsync<T>(this.Connection, this.Transaction, this.CmdType, this.CmdText, this.CmdTimeout, this.CmdParameters.ToArray(), cancellationToken);
+        async public Task<T> QuerySingleAsync<T>(CancellationToken cancellationToken = default) => (await QueryAsync<T>(cancellationToken)).FirstOrDefault();
+        public Task<NativeTuple<List<T1>, List<T2>>> QueryAsync<T1, T2>(CancellationToken cancellationToken = default) => this.Ado.QueryAsync<T1, T2>(this.Connection, this.Transaction, this.CmdType, this.CmdText, this.CmdTimeout, this.CmdParameters.ToArray(), cancellationToken);
+        public Task<NativeTuple<List<T1>, List<T2>, List<T3>>> QueryAsync<T1, T2, T3>(CancellationToken cancellationToken = default) => this.Ado.QueryAsync<T1, T2, T3>(this.Connection, this.Transaction, this.CmdType, this.CmdText, this.CmdTimeout, this.CmdParameters.ToArray(), cancellationToken);
+        public Task<NativeTuple<List<T1>, List<T2>, List<T3>, List<T4>>> QueryAsync<T1, T2, T3, T4>(CancellationToken cancellationToken = default) => this.Ado.QueryAsync<T1, T2, T3, T4>(this.Connection, this.Transaction, this.CmdType, this.CmdText, this.CmdTimeout, this.CmdParameters.ToArray(), cancellationToken);
+        public Task<NativeTuple<List<T1>, List<T2>, List<T3>, List<T4>, List<T5>>> QueryAsync<T1, T2, T3, T4, T5>(CancellationToken cancellationToken = default) => this.Ado.QueryAsync<T1, T2, T3, T4, T5>(this.Connection, this.Transaction, this.CmdType, this.CmdText, this.CmdTimeout, this.CmdParameters.ToArray(), cancellationToken);
 #endif
     }
 }

@@ -11,7 +11,7 @@ using System.Threading.Tasks;
 namespace FreeSql.Internal.CommonProvider
 {
 
-    public abstract partial class DeleteProvider<T1> : IDelete<T1> where T1 : class
+    public abstract partial class DeleteProvider<T1> : IDelete<T1>
     {
         public IFreeSql _orm;
         public CommonUtils _commonUtils;
@@ -80,7 +80,7 @@ namespace FreeSql.Internal.CommonProvider
             catch (Exception ex)
             {
                 exception = ex;
-                throw ex;
+                throw;
             }
             finally
             {
@@ -98,16 +98,17 @@ namespace FreeSql.Internal.CommonProvider
             if (condition == false || exp == null) return this;
             return this.Where(_commonExpression.ExpressionWhereLambdaNoneForeignObject(null, _table, null, exp?.Body, null, _params));
         }
-        public IDelete<T1> Where(string sql, object parms = null)
+        public IDelete<T1> Where(string sql, object parms = null) => WhereIf(true, sql, parms);
+        public IDelete<T1> WhereIf(bool condition, string sql, object parms = null)
         {
-            if (string.IsNullOrEmpty(sql)) return this;
+            if (condition == false || string.IsNullOrEmpty(sql)) return this;
             if (++_whereTimes > 1) _where.Append(" AND ");
-            _where.Append("(").Append(sql).Append(")");
+            _where.Append('(').Append(sql).Append(')');
             if (parms != null) _params.AddRange(_commonUtils.GetDbParamtersByObject(sql, parms));
             return this;
         }
         public IDelete<T1> Where(T1 item) => this.Where(new[] { item });
-        public IDelete<T1> Where(IEnumerable<T1> items) => this.Where(_commonUtils.WhereItems(_table, "", items));
+        public IDelete<T1> Where(IEnumerable<T1> items) => this.Where(_commonUtils.WhereItems(_table.Primarys, "", items));
         public IDelete<T1> WhereDynamic(object dywhere, bool not = false) => not == false ?
             this.Where(_commonUtils.WhereObject(_table, "", dywhere)) :
             this.Where($"not({_commonUtils.WhereObject(_table, "", dywhere)})");

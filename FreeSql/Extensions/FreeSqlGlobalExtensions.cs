@@ -1,6 +1,7 @@
 ﻿using FreeSql;
 using FreeSql.DataAnnotations;
 using FreeSql.Internal.CommonProvider;
+using FreeSql.Internal.ObjectPool;
 using System;
 using System.Collections;
 using System.Collections.Concurrent;
@@ -14,6 +15,7 @@ using System.Linq.Expressions;
 using System.Reflection;
 using System.Text;
 using System.Threading;
+using System.Threading.Tasks;
 
 public static partial class FreeSqlGlobalExtensions
 {
@@ -54,6 +56,7 @@ public static partial class FreeSqlGlobalExtensions
     /// 获取 Type 的原始 c# 文本表示
     /// </summary>
     /// <param name="type"></param>
+    /// <param name="isNameSpace"></param>
     /// <returns></returns>
     internal static string DisplayCsharp(this Type type, bool isNameSpace = true)
     {
@@ -86,14 +89,14 @@ public static partial class FreeSqlGlobalExtensions
         if (genericParameters.Any() == false)
             return sb.Append(type.Name).ToString();
 
-        sb.Append(type.Name.Remove(type.Name.IndexOf('`'))).Append("<");
+        sb.Append(type.Name.Remove(type.Name.IndexOf('`'))).Append('<');
         var genericTypeIndex = 0;
         foreach (var genericType in genericParameters)
         {
             if (genericTypeIndex++ > 0) sb.Append(", ");
             sb.Append(DisplayCsharp(genericType, true));
         }
-        return sb.Append(">").ToString();
+        return sb.Append('>').ToString();
     }
     internal static string DisplayCsharp(this MethodInfo method, bool isOverride)
     {
@@ -107,7 +110,7 @@ public static partial class FreeSqlGlobalExtensions
         if (method.IsStatic) sb.Append("static ");
         if (method.IsAbstract && method.DeclaringType.IsInterface == false) sb.Append("abstract ");
         if (method.IsVirtual && method.DeclaringType.IsInterface == false) sb.Append(isOverride ? "override " : "virtual ");
-        sb.Append(method.ReturnType.DisplayCsharp()).Append(" ").Append(method.Name);
+        sb.Append(method.ReturnType.DisplayCsharp()).Append(' ').Append(method.Name);
 
         var genericParameters = method.GetGenericArguments();
         if (method.DeclaringType.IsNested && method.DeclaringType.DeclaringType.IsGenericType)
@@ -119,11 +122,11 @@ public static partial class FreeSqlGlobalExtensions
             genericParameters = dic.Values.ToArray();
         }
         if (genericParameters.Any())
-            sb.Append("<")
+            sb.Append('<')
                 .Append(string.Join(", ", genericParameters.Select(a => a.DisplayCsharp())))
-                .Append(">");
+                .Append('>');
 
-        sb.Append("(").Append(string.Join(", ", method.GetParameters().Select(a => $"{a.ParameterType.DisplayCsharp()} {a.Name}"))).Append(")");
+        sb.Append('(').Append(string.Join(", ", method.GetParameters().Select(a => $"{a.ParameterType.DisplayCsharp()} {a.Name}"))).Append(')');
         return sb.ToString();
     }
     public static object CreateInstanceGetDefaultValue(this Type that)
@@ -166,7 +169,7 @@ public static partial class FreeSqlGlobalExtensions
         {
             if (dict.TryGetValue(prop.Name, out var existsProp))
             {
-                if (existsProp.DeclaringType != prop) dict[prop.Name] = prop;
+                if (existsProp.DeclaringType != prop.DeclaringType) dict[prop.Name] = prop;
                 continue;
             }
             dict.Add(prop.Name, prop);
@@ -281,7 +284,10 @@ public static partial class FreeSqlGlobalExtensions
     /// 示例：new List&lt;Song&gt;(new[] { song1, song2, song3 }).IncludeMany(g.sqlite, a => a.Tags);<para></para>
     /// 文档：https://github.com/2881099/FreeSql/wiki/%e8%b4%aa%e5%a9%aa%e5%8a%a0%e8%bd%bd#%E5%AF%BC%E8%88%AA%E5%B1%9E%E6%80%A7-onetomanymanytomany
     /// </summary>
+    /// <typeparam name="T1"></typeparam>
     /// <typeparam name="TNavigate"></typeparam>
+    /// <param name="list"></param>
+    /// <param name="orm"></param>
     /// <param name="navigateSelector">选择一个集合的导航属性，如： .IncludeMany(a => a.Tags)<para></para>
     /// 可以 .Where 设置临时的关系映射，如： .IncludeMany(a => a.Tags.Where(tag => tag.TypeId == a.Id))<para></para>
     /// 可以 .Take(5) 每个子集合只取5条，如： .IncludeMany(a => a.Tags.Take(5))<para></para>
@@ -305,7 +311,7 @@ public static partial class FreeSqlGlobalExtensions
 
 #if net40
 #else
-    async public static System.Threading.Tasks.Task<List<T1>> IncludeManyAsync<T1, TNavigate>(this List<T1> list, IFreeSql orm, Expression<Func<T1, IEnumerable<TNavigate>>> navigateSelector, Action<ISelect<TNavigate>> then = null) where T1 : class where TNavigate : class
+    async public static Task<List<T1>> IncludeManyAsync<T1, TNavigate>(this List<T1> list, IFreeSql orm, Expression<Func<T1, IEnumerable<TNavigate>>> navigateSelector, Action<ISelect<TNavigate>> then = null, CancellationToken cancellationToken = default) where T1 : class where TNavigate : class
     {
         if (list == null || list.Any() == false) return list;
         if (orm.CodeFirst.IsAutoSyncStructure)
@@ -315,7 +321,7 @@ public static partial class FreeSqlGlobalExtensions
                 (orm.CodeFirst as CodeFirstProvider)._dicSycedTryAdd(typeof(T1)); //._dicSyced.TryAdd(typeof(TReturn), true);
         }
         var select = orm.Select<T1>().IncludeMany(navigateSelector, then) as Select1Provider<T1>;
-        await select.SetListAsync(list);
+        await select.SetListAsync(list, cancellationToken);
         return list;
     }
 #endif
@@ -338,8 +344,8 @@ public static partial class FreeSqlGlobalExtensions
                 a.RefType == FreeSql.Internal.Model.TableRefType.OneToMany &&
                 a.RefEntityType == tb.Type).ToArray();
 
-        if (navs.Length != 1) return select.ToList();
         var list = select.ToList();
+        if (navs.Length != 1) return list;
 
         select._trackToList = null;
         select._includeToList.Clear();
@@ -352,7 +358,7 @@ public static partial class FreeSqlGlobalExtensions
     }
 #if net40
 #else
-    async public static System.Threading.Tasks.Task<List<T1>> ToTreeListAsync<T1>(this ISelect<T1> that) where T1 : class
+    async public static Task<List<T1>> ToTreeListAsync<T1>(this ISelect<T1> that, CancellationToken cancellationToken = default) where T1 : class
     {
         var select = that as Select1Provider<T1>;
         var tb = select._tables[0].Table;
@@ -361,8 +367,8 @@ public static partial class FreeSqlGlobalExtensions
                 a.RefType == FreeSql.Internal.Model.TableRefType.OneToMany &&
                 a.RefEntityType == tb.Type).ToArray();
 
-        if (navs.Length != 1) return await select.ToListAsync();
-        var list = await select.ToListAsync();
+        var list = await select.ToListAsync(false, cancellationToken);
+        if (navs.Length != 1) return list;
 
         select._trackToList = null;
         select._includeToList.Clear();
@@ -370,17 +376,19 @@ public static partial class FreeSqlGlobalExtensions
         var navigateSelector = Expression.Lambda<Func<T1, IEnumerable<T1>>>(Expression.MakeMemberAccess(navigateSelectorParamExp, navs[0].Property), navigateSelectorParamExp);
         select.IncludeMany(navigateSelector);
         select._includeManySubListOneToManyTempValue1 = list;
-        select.SetList(list);
+        await select.SetListAsync(list, cancellationToken);
         return list.Except(list.SelectMany(a => FreeSql.Extensions.EntityUtil.EntityUtilExtensions.GetEntityValueWithPropertyName(select._orm, tb.Type, a, navs[0].Property.Name) as IEnumerable<T1>)).ToList();
     }
 #endif
     #endregion
 
     #region AsTreeCte(..) 递归查询
+    static ConcurrentDictionary<string, string> _dicMySqlVersion = new ConcurrentDictionary<string, string>();
     /// <summary>
     /// 使用递归 CTE 查询树型的所有子记录，或者所有父记录。<para></para>
-    /// 通过测试的数据库：MySql8.0、SqlServer、PostgreSQL、Oracle、Sqlite、Firebird、达梦、人大金仓<para></para>
-    /// 返回隐藏字段：.ToList(a =&gt; new { item = a, level = "a.cte_level", path = "a.cte_path" })
+    /// 通过测试的数据库：MySql8.0、SqlServer、PostgreSQL、Oracle、Sqlite、Firebird、达梦、人大金仓、翰高<para></para>
+    /// 返回隐藏字段：.ToList(a =&gt; new { item = a, level = "a.cte_level", path = "a.cte_path" })<para></para>
+    /// * v2.0.0 兼容 MySql5.6 向上或向下查询，但不支持 pathSelector/pathSeparator 详细：https://github.com/dotnetcore/FreeSql/issues/536
     /// </summary>
     /// <typeparam name="T1"></typeparam>
     /// <param name="that"></param>
@@ -408,6 +416,70 @@ public static partial class FreeSqlGlobalExtensions
         var cteName = "as_tree_cte";
         if (select._orm.CodeFirst.IsSyncStructureToLower) cteName = cteName.ToLower();
         if (select._orm.CodeFirst.IsSyncStructureToUpper) cteName = cteName.ToUpper();
+
+        switch (select._orm.Ado.DataType) //MySql5.6
+        {
+            case DataType.MySql:
+            case DataType.OdbcMySql:
+                var mysqlConnectionString = select._orm.Ado?.ConnectionString ?? select._connection?.ConnectionString ?? "";
+                if (_dicMySqlVersion.TryGetValue(mysqlConnectionString, out var mysqlVersion) == false)
+                {
+                    if (select._orm.Ado?.ConnectionString != null)
+                    {
+                        using (var mysqlconn = select._orm.Ado.MasterPool.Get())
+                            mysqlVersion = mysqlconn.Value.ServerVersion;
+                    }
+                    else if (select._connection != null)
+                    {
+                        var isclosed = select._connection.State != ConnectionState.Open;
+                        if (isclosed) select._connection.Open();
+                        mysqlVersion = select._connection.ServerVersion;
+                        if (isclosed) select._connection.Close();
+                    }
+                    _dicMySqlVersion.TryAdd(mysqlConnectionString, mysqlVersion);
+                }
+                if (int.TryParse((mysqlVersion ?? "").Split('.')[0], out var mysqlVersionFirst) && mysqlVersionFirst < 8)
+                {
+                    if (tbref.Columns.Count > 1) throw new ArgumentException($"{tb.Type.FullName} 是父子关系，但是 MySql 8.0 以下版本中不支持组合多主键");
+                    var mysql56Sql = "";
+                    if (up == false)
+                    {
+                        mysql56Sql = $@"SELECT cte_tbc.cte_level, {select.GetAllFieldExpressionTreeLevel2().Field}
+  FROM (
+    SELECT @cte_ids as cte_ids, (
+      SELECT @cte_ids := group_concat({select._commonUtils.QuoteSqlName(tbref.Columns[0].Attribute.Name)}) 
+      FROM {select._commonUtils.QuoteSqlName(tb.DbName)} 
+      WHERE find_in_set({select._commonUtils.QuoteSqlName(tbref.RefColumns[0].Attribute.Name)}, @cte_ids)
+    ) as cte_cids, @cte_level := @cte_idcte_levels + 1 as cte_level
+    FROM {select._commonUtils.QuoteSqlName(tb.DbName)}, (
+      SELECT @cte_ids := a.{select._commonUtils.QuoteSqlName(tbref.Columns[0].Attribute.Name)}, @cte_idcte_levels := 0 
+      FROM {select._commonUtils.QuoteSqlName(tb.DbName)} a
+      WHERE 1=1{select._where}
+      LIMIT 1) cte_tbb
+    WHERE @cte_ids IS NOT NULL
+  ) cte_tbc, {select._commonUtils.QuoteSqlName(tb.DbName)} a
+  WHERE find_in_set(a.{select._commonUtils.QuoteSqlName(tbref.Columns[0].Attribute.Name)}, cte_tbc.cte_ids)";
+                        select.WithSql(mysql56Sql).OrderBy("a.cte_level DESC");
+                        select._where.Clear();
+                        return select;
+                    }
+                    mysql56Sql = $@"SELECT cte_tbc.cte_level, {select.GetAllFieldExpressionTreeLevel2().Field}
+FROM (
+    SELECT @cte_pid as cte_id, (SELECT @cte_pid := {select._commonUtils.QuoteSqlName(tbref.RefColumns[0].Attribute.Name)} FROM {select._commonUtils.QuoteSqlName(tb.DbName)} WHERE {select._commonUtils.QuoteSqlName(tbref.Columns[0].Attribute.Name)} = cte_id) as cte_pid, @cte_level := @cte_level + 1 as cte_level
+    FROM {select._commonUtils.QuoteSqlName(tb.DbName)}, (
+      SELECT @cte_pid := a.{select._commonUtils.QuoteSqlName(tbref.Columns[0].Attribute.Name)}, @cte_level := 0 
+      FROM {select._commonUtils.QuoteSqlName(tb.DbName)} a
+      WHERE 1=1{select._where}
+      LIMIT 1) cte_tbb
+) cte_tbc
+JOIN {select._commonUtils.QuoteSqlName(tb.DbName)} a ON cte_tbc.cte_id = a.{select._commonUtils.QuoteSqlName(tbref.Columns[0].Attribute.Name)}";
+                    select.WithSql(mysql56Sql).OrderBy("a.cte_level");
+                    select._where.Clear();
+                    return select;
+                }
+                break;
+        }
+
         var sql1ctePath = "";
         if (pathSelector != null)
         {
@@ -465,13 +537,16 @@ public static partial class FreeSqlGlobalExtensions
             .ToSql($"wct1.cte_level + 1 as cte_level, {sql2ctePath}{sql2Field}").Trim();
 
         var newSelect = select._orm.Select<T1>()
+            .WithConnection(select._connection)
+            .WithTransaction(select._transaction)
+            .TrackToList(select._trackToList)
             .AsType(tb.Type)
             .AsTable((type, old) => type == tb.Type ? cteName : old)
             .WhereIf(level > 0, $"a.cte_level < {level + 1}")
             .OrderBy(up, "a.cte_level desc") as Select1Provider<T1>;
 
         var nsselsb = new StringBuilder();
-        if (AdoProvider.IsFromSlave(select._select) == false) nsselsb.Append(" "); //读写分离规则，如果强制读主库，则在前面加个空格
+        if (AdoProvider.IsFromSlave(select._select) == false) nsselsb.Append(' '); //读写分离规则，如果强制读主库，则在前面加个空格
         nsselsb.Append("WITH ");
         switch (select._orm.Ado.DataType)
         {
@@ -508,4 +583,44 @@ SELECT ");
     }
     #endregion
 
+    #region OrderBy Random 随机排序
+
+    /// <summary>
+    /// 随机排序<para></para>
+    /// 支持：MySql/SqlServer/PostgreSQL/Oracle/Sqlite/Firebird/达梦/金仓/神通<para></para>
+    /// 不支持：MsAcess
+    /// </summary>
+    /// <returns></returns>
+    public static TSelect OrderByRandom<TSelect, T1>(this ISelect0<TSelect, T1> that) where TSelect : class
+    {
+        var s0p = that as Select0Provider;
+        switch (s0p._orm.Ado.DataType)
+        {
+            case DataType.MySql:
+            case DataType.OdbcMySql:
+                return that.OrderBy("rand()");
+            case DataType.SqlServer:
+            case DataType.OdbcSqlServer:
+                return that.OrderBy("newid()");
+            case DataType.PostgreSQL:
+            case DataType.OdbcPostgreSQL:
+            case DataType.KingbaseES:
+            case DataType.OdbcKingbaseES:
+            case DataType.ShenTong:
+                return that.OrderBy("random()");
+            case DataType.Oracle:
+            case DataType.Dameng:
+            case DataType.OdbcOracle:
+            case DataType.OdbcDameng:
+                return that.OrderBy("dbms_random.value");
+            case DataType.Sqlite:
+                return that.OrderBy("random()");
+            //case DataType.MsAccess:
+            //    return that.OrderBy("rnd()");
+            case DataType.Firebird:
+                return that.OrderBy("rand()");
+        }
+        throw new NotSupportedException($"{s0p._orm.Ado.DataType} 不支持 OrderByRandom 随机排序");
+    }
+    #endregion
 }

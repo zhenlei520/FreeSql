@@ -37,7 +37,7 @@ namespace FreeSql.Oracle
                     case OracleDbType.NVarchar2:
                     case OracleDbType.Decimal:
                         dbtype = dbtype2;
-                        if (col.DbSize != 0) ret.Size = col.DbSize;
+                        //if (col.DbSize != 0) ret.Size = col.DbSize;
                         if (col.DbPrecision != 0) ret.Precision = col.DbPrecision;
                         if (col.DbScale != 0) ret.Scale = col.DbScale;
                         break;
@@ -54,14 +54,16 @@ namespace FreeSql.Oracle
         public override DbParameter[] GetDbParamtersByObject(string sql, object obj) =>
             Utils.GetDbParamtersByObject<OracleParameter>(sql, obj, ":", (name, type, value) =>
             {
-                var dbtype = (OracleDbType)_orm.CodeFirst.GetDbInfo(type)?.type;
+                var dbtypeint = _orm.CodeFirst.GetDbInfo(type)?.type;
+                var dbtype = dbtypeint != null ? (OracleDbType?)dbtypeint : null;
                 if (dbtype == OracleDbType.Boolean)
                 {
                     if (value == null) value = null;
                     else value = (bool)value == true ? 1 : 0;
                     dbtype = OracleDbType.Int16;
                 }
-                var ret = new OracleParameter { ParameterName = $":{name}", OracleDbType = dbtype, Value = value };
+                var ret = new OracleParameter { ParameterName = $":{name}", Value = value };
+                if (dbtype != null) ret.OracleDbType = dbtype.Value;
                 return ret;
             });
 
@@ -95,10 +97,10 @@ namespace FreeSql.Oracle
         public override string Now => "systimestamp";
         public override string NowUtc => "sys_extract_utc(systimestamp)";
 
-        public override string QuoteWriteParamter(Type type, string paramterName) => paramterName;
-        public override string QuoteReadColumn(Type type, Type mapType, string columnName) => columnName;
+        public override string QuoteWriteParamterAdapter(Type type, string paramterName) => paramterName;
+        protected override string QuoteReadColumnAdapter(Type type, Type mapType, string columnName) => columnName;
 
-        public override string GetNoneParamaterSqlValue(List<DbParameter> specialParams, string specialParamFlag, Type type, object value)
+        public override string GetNoneParamaterSqlValue(List<DbParameter> specialParams, string specialParamFlag, ColumnInfo col, Type type, object value)
         {
             if (value == null) return "NULL";
             if (type.IsNumberType()) return string.Format(CultureInfo.InvariantCulture, "{0}", value);

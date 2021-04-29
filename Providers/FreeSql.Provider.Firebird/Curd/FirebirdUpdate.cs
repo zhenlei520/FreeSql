@@ -5,12 +5,13 @@ using System.Collections.Generic;
 using System.Data;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace FreeSql.Firebird.Curd
 {
 
-    class FirebirdUpdate<T1> : Internal.CommonProvider.UpdateProvider<T1> where T1 : class
+    class FirebirdUpdate<T1> : Internal.CommonProvider.UpdateProvider<T1>
     {
 
         public FirebirdUpdate(IFreeSql orm, CommonUtils commonUtils, CommonExpression commonExpression, object dywhere)
@@ -33,7 +34,7 @@ namespace FreeSql.Firebird.Curd
             foreach (var col in _table.Columns.Values)
             {
                 if (colidx > 0) sb.Append(", ");
-                sb.Append(_commonUtils.QuoteReadColumn(col.CsType, col.Attribute.MapType, $"new.{_commonUtils.QuoteSqlName(col.Attribute.Name)}")).Append(" as ").Append(_commonUtils.QuoteSqlName(col.CsName));
+                sb.Append(_commonUtils.RereadColumn(col, $"new.{_commonUtils.QuoteSqlName(col.Attribute.Name)}")).Append(" as ").Append(_commonUtils.QuoteSqlName(col.CsName));
                 ++colidx;
             }
             sql = sb.ToString();
@@ -62,18 +63,18 @@ namespace FreeSql.Firebird.Curd
 
         protected override void ToSqlCase(StringBuilder caseWhen, ColumnInfo[] primarys)
         {
-            if (_table.Primarys.Length == 1)
+            if (primarys.Length == 1)
             {
-                var pk = _table.Primarys.First();
-                caseWhen.Append(_commonUtils.QuoteReadColumn(pk.CsType, pk.Attribute.MapType, _commonUtils.QuoteSqlName(pk.Attribute.Name)));
+                var pk = primarys.First();
+                caseWhen.Append(_commonUtils.RereadColumn(pk, _commonUtils.QuoteSqlName(pk.Attribute.Name)));
                 return;
             }
             caseWhen.Append("CONCAT(");
             var pkidx = 0;
-            foreach (var pk in _table.Primarys)
+            foreach (var pk in primarys)
             {
                 if (pkidx > 0) caseWhen.Append(", '+', ");
-                caseWhen.Append(_commonUtils.QuoteReadColumn(pk.CsType, pk.Attribute.MapType, _commonUtils.QuoteSqlName(pk.Attribute.Name)));
+                caseWhen.Append(_commonUtils.RereadColumn(pk, _commonUtils.QuoteSqlName(pk.Attribute.Name)));
                 ++pkidx;
             }
             caseWhen.Append(")");
@@ -81,14 +82,14 @@ namespace FreeSql.Firebird.Curd
 
         protected override void ToSqlWhen(StringBuilder sb, ColumnInfo[] primarys, object d)
         {
-            if (_table.Primarys.Length == 1)
+            if (primarys.Length == 1)
             {
-                sb.Append(_commonUtils.FormatSql("{0}", _table.Primarys[0].GetDbValue(d)));
+                sb.Append(_commonUtils.FormatSql("{0}", primarys[0].GetDbValue(d)));
                 return;
             }
             sb.Append("CONCAT(");
             var pkidx = 0;
-            foreach (var pk in _table.Primarys)
+            foreach (var pk in primarys)
             {
                 if (pkidx > 0) sb.Append(", '+', ");
                 sb.Append(_commonUtils.FormatSql("{0}", pk.GetDbValue(d)));
@@ -99,10 +100,10 @@ namespace FreeSql.Firebird.Curd
 
 #if net40
 #else
-        public override Task<int> ExecuteAffrowsAsync() => base.SplitExecuteAffrowsAsync(_batchRowsLimit > 0 ? _batchRowsLimit : 200, _batchParameterLimit > 0 ? _batchParameterLimit : 999);
-        public override Task<List<T1>> ExecuteUpdatedAsync() => base.SplitExecuteUpdatedAsync(_batchRowsLimit > 0 ? _batchRowsLimit : 200, _batchParameterLimit > 0 ? _batchParameterLimit : 999);
+        public override Task<int> ExecuteAffrowsAsync(CancellationToken cancellationToken = default) => base.SplitExecuteAffrowsAsync(_batchRowsLimit > 0 ? _batchRowsLimit : 200, _batchParameterLimit > 0 ? _batchParameterLimit : 999, cancellationToken);
+        public override Task<List<T1>> ExecuteUpdatedAsync(CancellationToken cancellationToken = default) => base.SplitExecuteUpdatedAsync(_batchRowsLimit > 0 ? _batchRowsLimit : 200, _batchParameterLimit > 0 ? _batchParameterLimit : 999, cancellationToken);
 
-        async protected override Task<List<T1>> RawExecuteUpdatedAsync()
+        async protected override Task<List<T1>> RawExecuteUpdatedAsync(CancellationToken cancellationToken = default)
         {
             var sql = this.ToSql();
             if (string.IsNullOrEmpty(sql)) return new List<T1>();
@@ -114,7 +115,7 @@ namespace FreeSql.Firebird.Curd
             foreach (var col in _table.Columns.Values)
             {
                 if (colidx > 0) sb.Append(", ");
-                sb.Append(_commonUtils.QuoteReadColumn(col.CsType, col.Attribute.MapType, $"new.{_commonUtils.QuoteSqlName(col.Attribute.Name)}")).Append(" as ").Append(_commonUtils.QuoteSqlName(col.CsName));
+                sb.Append(_commonUtils.RereadColumn(col, $"new.{_commonUtils.QuoteSqlName(col.Attribute.Name)}")).Append(" as ").Append(_commonUtils.QuoteSqlName(col.CsName));
                 ++colidx;
             }
             sql = sb.ToString();
@@ -125,7 +126,7 @@ namespace FreeSql.Firebird.Curd
             Exception exception = null;
             try
             {
-                ret = await _orm.Ado.QueryAsync<T1>(_connection, _transaction, CommandType.Text, sql, _commandTimeout, dbParms);
+                ret = await _orm.Ado.QueryAsync<T1>(_connection, _transaction, CommandType.Text, sql, _commandTimeout, dbParms, cancellationToken);
                 ValidateVersionAndThrow(ret.Count, sql, dbParms);
             }
             catch (Exception ex)

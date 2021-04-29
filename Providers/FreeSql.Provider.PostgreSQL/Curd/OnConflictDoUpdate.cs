@@ -6,6 +6,7 @@ using System.Data;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace FreeSql.PostgreSQL.Curd
@@ -124,7 +125,7 @@ namespace FreeSql.PostgreSQL.Curd
 
                         if (colidx > 0) sb.Append(", \r\n");
 
-                        if (col.Attribute.IsVersion == true)
+                        if (col.Attribute.IsVersion == true && col.Attribute.MapType != typeof(byte[]))
                         {
                             var field = _pgsqlInsert.InternalCommonUtils.QuoteSqlName(col.Attribute.Name);
                             sb.Append(field).Append(" = ").Append(_pgsqlInsert.InternalCommonUtils.QuoteSqlName(_pgsqlInsert.InternalTable.DbName)).Append(".").Append(field).Append(" + 1");
@@ -177,7 +178,7 @@ namespace FreeSql.PostgreSQL.Curd
 
 #if net40
 #else
-        async public Task<long> ExecuteAffrowsAsync()
+        async public Task<long> ExecuteAffrowsAsync(CancellationToken cancellationToken = default)
         {
             var sql = this.ToSql();
             if (string.IsNullOrEmpty(sql)) return 0;
@@ -188,7 +189,7 @@ namespace FreeSql.PostgreSQL.Curd
             Exception exception = null;
             try
             {
-                ret = await _pgsqlInsert.InternalOrm.Ado.ExecuteNonQueryAsync(_pgsqlInsert.InternalConnection, _pgsqlInsert.InternalTransaction, CommandType.Text, sql, _pgsqlInsert._commandTimeout, _pgsqlInsert.InternalParams);
+                ret = await _pgsqlInsert.InternalOrm.Ado.ExecuteNonQueryAsync(_pgsqlInsert.InternalConnection, _pgsqlInsert.InternalTransaction, CommandType.Text, sql, _pgsqlInsert._commandTimeout, _pgsqlInsert.InternalParams, cancellationToken);
             }
             catch (Exception ex)
             {

@@ -3,11 +3,12 @@ using System;
 using System.Collections.Generic;
 using System.Data.Common;
 using System.Linq.Expressions;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace FreeSql
 {
-    public interface IUpdate<T1> where T1 : class
+    public interface IUpdate<T1>
     {
 
         /// <summary>
@@ -71,8 +72,9 @@ namespace FreeSql
         /// 注意：实体必须定义主键，并且最终会自动附加条件 where id in (source.Id)
         /// </summary>
         /// <param name="source">实体集合</param>
+        /// <param name="tempPrimarys">根据临时主键更新，a => a.Name | a => new{a.Name,a.Time} | a => new[]{"name","time"}</param>
         /// <returns></returns>
-        IUpdate<T1> SetSource(IEnumerable<T1> source);
+        IUpdate<T1> SetSource(IEnumerable<T1> source, Expression<Func<T1, object>> tempPrimarys = null);
         /// <summary>
         /// 更新数据，设置更新的实体，同时设置忽略的列<para></para>
         /// 忽略 null 属性：fsql.Update&lt;T&gt;().SetSourceAndIgnore(item, colval => colval == null)<para></para>
@@ -150,7 +152,7 @@ namespace FreeSql
         /// <returns></returns>
         IUpdate<T1> SetIf<TMember>(bool condition, Expression<Func<T1, TMember>> exp);
         /// <summary>
-        /// 设置值，自定义SQL语法，SetRaw("title = ?title", new { title = "newtitle" })<para></para>
+        /// 设置值，自定义SQL语法，SetRaw("title = @title", new { title = "newtitle" })<para></para>
         /// 提示：parms 参数还可以传 Dictionary&lt;string, object&gt;
         /// </summary>
         /// <param name="sql">sql语法</param>
@@ -184,7 +186,7 @@ namespace FreeSql
         /// <returns></returns>
         IUpdate<T1> WhereIf(bool condition, Expression<Func<T1, bool>> exp);
         /// <summary>
-        /// 原生sql语法条件，Where("id = ?id", new { id = 1 })<para></para>
+        /// 原生sql语法条件，Where("id = @id", new { id = 1 })<para></para>
         /// 提示：parms 参数还可以传 Dictionary&lt;string, object&gt;
         /// </summary>
         /// <param name="sql">sql语法条件</param>
@@ -249,8 +251,8 @@ namespace FreeSql
 
 #if net40
 #else
-        Task<int> ExecuteAffrowsAsync();
-        Task<List<T1>> ExecuteUpdatedAsync();
+        Task<int> ExecuteAffrowsAsync(CancellationToken cancellationToken = default);
+        Task<List<T1>> ExecuteUpdatedAsync(CancellationToken cancellationToken = default);
 #endif
     }
 }

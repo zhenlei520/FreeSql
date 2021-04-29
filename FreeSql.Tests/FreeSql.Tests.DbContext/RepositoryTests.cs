@@ -130,6 +130,7 @@ namespace FreeSql.Tests
                     flowRepos = uow.GetRepository<FlowModel>();
                     flowRepos.Insert(flow);
                     flowRepos.Orm.Select<FlowModel>().ToList();
+                    flowRepos.Orm.Ado.ExecuteConnectTest();
                     uow.Commit();
                 }
             }
@@ -252,6 +253,8 @@ namespace FreeSql.Tests
             var cts2 = repo.Select.WhereDynamic(cts).IncludeMany(a => a.Goodss).ToList();
             cts2[0].Goodss[0].Name += 123;
             repo.Update(cts2[0]);
+            cts2[0].Goodss[0].Name += 333;
+            repo.SaveMany(cts2[0], "Goodss");
         }
         [Table(Name = "EAUNL_OTM_CT")]
         class Cagetory
@@ -269,6 +272,76 @@ namespace FreeSql.Tests
             public Guid CagetoryId { get; set; }
             public string Name { get; set; }
         }
+
+        [Fact]
+        public void EnableAddOrUpdateNavigateList_OneToMany_lazyloading()
+        {
+            var repo = g.sqlite.GetRepository<CagetoryLD>();
+            repo.DbContextOptions.EnableAddOrUpdateNavigateList = true;
+            var cts = new[] {
+                new CagetoryLD
+                {
+                    Name = "分类1",
+                    Goodss = new List<GoodsLD>(new[]
+                    {
+                        new GoodsLD { Name = "商品1" },
+                        new GoodsLD { Name = "商品2" },
+                        new GoodsLD { Name = "商品3" }
+                    })
+                },
+                new CagetoryLD
+                {
+                    Name = "分类2",
+                    Goodss = new List<GoodsLD>(new[]
+                    {
+                        new GoodsLD { Name = "商品4" },
+                        new GoodsLD { Name = "商品5" }
+                    })
+                }
+            };
+            repo.Insert(cts);
+            cts[0].Name = "分类11";
+            cts[0].Goodss.Clear();
+            cts[1].Name = "分类22";
+            cts[1].Goodss.Clear();
+            repo.Update(cts);
+            cts[0].Name = "分类111";
+            cts[0].Goodss.Clear();
+            cts[0].Goodss.Add(new GoodsLD { Name = "商品33" });
+            cts[1].Name = "分类222";
+            cts[1].Goodss.Clear();
+            cts[1].Goodss.Add(new GoodsLD { Name = "商品55" });
+            repo.Update(cts);
+
+            var cts2 = repo.Select.WhereDynamic(cts).IncludeMany(a => a.Goodss).ToList();
+            cts2[0].Goodss[0].Name += 123;
+            repo.Update(cts2[0]);
+            cts2[0].Goodss[0].Name += 333;
+            repo.SaveMany(cts2[0], "Goodss");
+
+            cts2 = repo.Select.WhereDynamic(cts).ToList();
+            cts2[0].Goodss[0].Name += 123;
+            repo.Update(cts2[0]);
+            cts2[0].Goodss[0].Name += 333;
+            repo.SaveMany(cts2[0], "Goodss");
+        }
+        [Table(Name = "EAUNL_OTM_CTLD")]
+        public class CagetoryLD
+        {
+            public Guid Id { get; set; }
+            public string Name { get; set; }
+
+            [Navigate("CagetoryId")]
+            public virtual List<GoodsLD> Goodss { get; set; }
+        }
+        [Table(Name = "EAUNL_OTM_GDLD")]
+        public class GoodsLD
+        {
+            public Guid Id { get; set; }
+            public Guid CagetoryId { get; set; }
+            public string Name { get; set; }
+        }
+
         [Fact]
         public void SaveMany_OneToMany()
         {
@@ -496,6 +569,110 @@ namespace FreeSql.Tests
         {
             public Guid Id { get; set; }
             public string Name { get; set; }
+        }
+
+        [Fact]
+        public void OrmScoped()
+        {
+            var fsql = g.sqlserver;
+            //fsql.Aop.CommandBefore += (s, e) =>
+            //{
+            //    Console.WriteLine(e.Command.CommandText);
+            //};
+
+            var repo = fsql.GetRepository<ts_repo_update_bit>();
+            repo.Orm.Ado.ExecuteNonQuery("select 1");
+
+            using (var ctx = fsql.CreateDbContext())
+            {
+                ctx.Orm.Ado.ExecuteNonQuery("select 1");
+            }
+
+            using (var uow = fsql.CreateUnitOfWork())
+            {
+                uow.Orm.Ado.ExecuteNonQuery("select 1");
+            }
+
+            using (var uow = fsql.CreateUnitOfWork())
+            {
+                repo.UnitOfWork = uow;
+                repo.Orm.Ado.ExecuteNonQuery("select 1");
+            }
+        }
+
+        [Fact]
+        public void UpdateBit()
+        {
+            var fsql = g.sqlserver;
+
+            fsql.Delete<ts_repo_update_bit>().Where("1=1").ExecuteAffrows();
+            var id = fsql.Insert(new ts_repo_update_bit()).ExecuteIdentity();
+            Assert.True(id > 0);
+            var repo = fsql.GetRepository<ts_repo_update_bit>();
+            var item = repo.Select.WhereDynamic(id).First();
+            Assert.Equal(item.id, id);
+            Assert.False(item.bool_val);
+
+            item.bool_val = true;
+            repo.Update(item);
+            item = repo.Select.WhereDynamic(id).First();
+            Assert.Equal(item.id, id);
+            Assert.True(item.bool_val);
+
+            item.bool_val = false;
+            repo.Update(item);
+            item = repo.Select.WhereDynamic(id).First();
+            Assert.Equal(item.id, id);
+            Assert.False(item.bool_val);
+
+            item.bool_val = false;
+            repo.Update(item);
+            item = repo.Select.WhereDynamic(id).First();
+            Assert.Equal(item.id, id);
+            Assert.False(item.bool_val);
+
+
+
+            item.bool_val = true;
+            repo.InsertOrUpdate(item);
+            item = repo.Select.WhereDynamic(id).First();
+            Assert.Equal(item.id, id);
+            Assert.True(item.bool_val);
+
+            item.bool_val = false;
+            repo.InsertOrUpdate(item);
+            item = repo.Select.WhereDynamic(id).First();
+            Assert.Equal(item.id, id);
+            Assert.False(item.bool_val);
+
+            item.bool_val = false;
+            repo.InsertOrUpdate(item);
+            item = repo.Select.WhereDynamic(id).First();
+            Assert.Equal(item.id, id);
+            Assert.False(item.bool_val);
+
+
+
+            repo.InsertOrUpdate(new ts_repo_update_bit { id = item.id, bool_val = true });
+            item = repo.Select.WhereDynamic(id).First();
+            Assert.Equal(item.id, id);
+            Assert.True(item.bool_val);
+
+            repo.InsertOrUpdate(new ts_repo_update_bit { id = item.id, bool_val = false });
+            item = repo.Select.WhereDynamic(id).First();
+            Assert.Equal(item.id, id);
+            Assert.False(item.bool_val);
+
+            repo.InsertOrUpdate(new ts_repo_update_bit { id = item.id, bool_val = false });
+            item = repo.Select.WhereDynamic(id).First();
+            Assert.Equal(item.id, id);
+            Assert.False(item.bool_val);
+        }
+        class ts_repo_update_bit
+        {
+            [Column(IsIdentity = true)]
+            public int id { get; set; }
+            public bool bool_val { get; set; }
         }
     }
 }

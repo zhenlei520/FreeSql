@@ -4,32 +4,33 @@ using System.Collections.Generic;
 using System.Data;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace FreeSql
 {
-    public interface ISelect<T1> : ISelect0<ISelect<T1>, T1> where T1 : class
+    public interface ISelect<T1> : ISelect0<ISelect<T1>, T1>
     {
 
 #if net40
 #else
-        Task<bool> AnyAsync(Expression<Func<T1, bool>> exp);
+        Task<bool> AnyAsync(Expression<Func<T1, bool>> exp, CancellationToken cancellationToken = default);
 
-        Task<int> InsertIntoAsync<TTargetEntity>(string tableName, Expression<Func<T1, TTargetEntity>> select) where TTargetEntity : class;
-        Task<DataTable> ToDataTableAsync<TReturn>(Expression<Func<T1, TReturn>> select);
-        Task<List<TReturn>> ToListAsync<TReturn>(Expression<Func<T1, TReturn>> select);
-        Task<List<TDto>> ToListAsync<TDto>();
+        Task<int> InsertIntoAsync<TTargetEntity>(string tableName, Expression<Func<T1, TTargetEntity>> select, CancellationToken cancellationToken = default) where TTargetEntity : class;
+        Task<DataTable> ToDataTableAsync<TReturn>(Expression<Func<T1, TReturn>> select, CancellationToken cancellationToken = default);
+        Task<List<TReturn>> ToListAsync<TReturn>(Expression<Func<T1, TReturn>> select, CancellationToken cancellationToken = default);
+        Task<List<TDto>> ToListAsync<TDto>(CancellationToken cancellationToken = default);
         
-        Task<TReturn> ToOneAsync<TReturn>(Expression<Func<T1, TReturn>> select);
-        Task<TDto> ToOneAsync<TDto>();
-        Task<TReturn> FirstAsync<TReturn>(Expression<Func<T1, TReturn>> select);
-        Task<TDto> FirstAsync<TDto>();
+        Task<TReturn> ToOneAsync<TReturn>(Expression<Func<T1, TReturn>> select, CancellationToken cancellationToken = default);
+        Task<TDto> ToOneAsync<TDto>(CancellationToken cancellationToken = default);
+        Task<TReturn> FirstAsync<TReturn>(Expression<Func<T1, TReturn>> select, CancellationToken cancellationToken = default);
+        Task<TDto> FirstAsync<TDto>(CancellationToken cancellationToken = default);
         
-        Task<TReturn> ToAggregateAsync<TReturn>(Expression<Func<ISelectGroupingAggregate<T1>, TReturn>> select);
-        Task<decimal> SumAsync<TMember>(Expression<Func<T1, TMember>> column);
-        Task<TMember> MinAsync<TMember>(Expression<Func<T1, TMember>> column);
-        Task<TMember> MaxAsync<TMember>(Expression<Func<T1, TMember>> column);
-        Task<double> AvgAsync<TMember>(Expression<Func<T1, TMember>> column);
+        Task<TReturn> ToAggregateAsync<TReturn>(Expression<Func<ISelectGroupingAggregate<T1>, TReturn>> select, CancellationToken cancellationToken = default);
+        Task<decimal> SumAsync<TMember>(Expression<Func<T1, TMember>> column, CancellationToken cancellationToken = default);
+        Task<TMember> MinAsync<TMember>(Expression<Func<T1, TMember>> column, CancellationToken cancellationToken = default);
+        Task<TMember> MaxAsync<TMember>(Expression<Func<T1, TMember>> column, CancellationToken cancellationToken = default);
+        Task<double> AvgAsync<TMember>(Expression<Func<T1, TMember>> column, CancellationToken cancellationToken = default);
 #endif
 
         /// <summary>
@@ -241,6 +242,7 @@ namespace FreeSql
         /// <typeparam name="T2"></typeparam>
         /// <typeparam name="T3"></typeparam>
         /// <typeparam name="T4"></typeparam>
+        /// <typeparam name="T5"></typeparam>
         /// <param name="exp">lambda表达式</param>
         /// <returns></returns>
         ISelect<T1> Where<T2, T3, T4, T5>(Expression<Func<T1, T2, T3, T4, T5, bool>> exp) where T2 : class where T3 : class where T4 : class where T5 : class;
@@ -320,6 +322,14 @@ namespace FreeSql
         /// <returns></returns>
         ISelect<T1> Include<TNavigate>(Expression<Func<T1, TNavigate>> navigateSelector) where TNavigate : class;
         /// <summary>
+        /// 贪婪加载导航属性，如果查询中已经使用了 a.Parent.Parent 类似表达式，则可以无需此操作
+        /// </summary>
+        /// <typeparam name="TNavigate"></typeparam>
+        /// <param name="condition">true 时生效</param>
+        /// <param name="navigateSelector">选择一个导航属性</param>
+        /// <returns></returns>
+        ISelect<T1> IncludeIf<TNavigate>(bool condition, Expression<Func<T1, TNavigate>> navigateSelector) where TNavigate : class;
+        /// <summary>
         /// 贪婪加载集合的导航属性，其实是分两次查询，ToList 后进行了数据重装<para></para>
         /// 文档：https://github.com/2881099/FreeSql/wiki/%e8%b4%aa%e5%a9%aa%e5%8a%a0%e8%bd%bd#%E5%AF%BC%E8%88%AA%E5%B1%9E%E6%80%A7-onetomanymanytomany
         /// </summary>
@@ -334,9 +344,23 @@ namespace FreeSql
         ISelect<T1> IncludeMany<TNavigate>(Expression<Func<T1, IEnumerable<TNavigate>>> navigateSelector, Action<ISelect<TNavigate>> then = null) where TNavigate : class;
 
         /// <summary>
+        /// 按属性名字符串进行 Include/IncludeMany 操作
+        /// </summary>
+        /// <param name="property"></param>
+        /// <returns></returns>
+        ISelect<T1> IncludeByPropertyName(string property);
+        /// <summary>
+        /// 按属性名字符串进行 Include/IncludeMany 操作
+        /// </summary>
+        /// <param name="condition">true 时生效</param>
+        /// <param name="property"></param>
+        /// <returns></returns>
+        ISelect<T1> IncludeByPropertyNameIf(bool condition, string property);
+
+        /// <summary>
         /// 实现 select .. from ( select ... from t ) a 这样的功能<para></para>
         /// 使用 AsTable 方法也可以达到效果<para></para>
-        /// 示例：WithSql("select * from id=?id", new { id = 1 })<para></para>
+        /// 示例：WithSql("select * from id=@id", new { id = 1 })<para></para>
         /// 提示：parms 参数还可以传 Dictionary&lt;string, object&gt;
         /// </summary>
         /// <param name="sql">SQL语句</param>
